@@ -15,6 +15,8 @@ let currentPreviewProduct = null;
 let customerAttachedFiles = [];
 let customerSlipFile = null;
 let isSubmittingOrder = false;
+let isManualNavClick = false;
+let manualNavTimer = null;
 const MAX_TOTAL_UPLOAD_SIZE = 100 * 1024 * 1024; // 100 MB max
 
 // Cart State (stored in localStorage)
@@ -171,12 +173,19 @@ window.filterByMainType = function (mainType) {
   currentMainType = mainType;
   currentCategoryFilter = "all";
 
+  // ล็อค Scrollspy ชั่วคราวไม่ให้เขียนทับ Highlight ขณะเลื่อนจอ
+  isManualNavClick = true;
+  if (manualNavTimer) clearTimeout(manualNavTimer);
+  manualNavTimer = setTimeout(() => {
+    isManualNavClick = false;
+  }, 1200);
+
   document.querySelectorAll(".main-type-tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.maintype === mainType);
   });
 
-  // อัปเดตสถานะ Active บน Navbar ด้านบนให้ตรงกับประเภทที่เลือก
-  document.querySelectorAll(".nav-link").forEach((link) => {
+  // อัปเดตสถานะ Active บน Navbar และ Drawer Menu
+  document.querySelectorAll(".nav-link, .drawer-link").forEach((link) => {
     const onclickAttr = link.getAttribute("onclick") || "";
     if (onclickAttr.includes(`filterByMainType('${mainType}')`)) {
       link.classList.add("active");
@@ -198,8 +207,26 @@ window.filterByCategorySlug = function (slug) {
     currentMainType = cat.product_type;
     currentCategoryFilter = slug;
 
+    // ล็อค Scrollspy ชั่วคราว
+    isManualNavClick = true;
+    if (manualNavTimer) clearTimeout(manualNavTimer);
+    manualNavTimer = setTimeout(() => {
+      isManualNavClick = false;
+    }, 1200);
+
     document.querySelectorAll(".main-type-tab").forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.maintype === currentMainType);
+    });
+
+    // กำหนด Active ไปที่หมวดหมู่สินค้า
+    document.querySelectorAll(".nav-link, .drawer-link").forEach((link) => {
+      const href = link.getAttribute("href") || "";
+      const onclickAttr = link.getAttribute("onclick") || "";
+      if (href === "#categories" && !onclickAttr) {
+        link.classList.add("active");
+      } else {
+        link.classList.remove("active");
+      }
     });
 
     renderSubFilterTabs();
@@ -872,66 +899,6 @@ window.handleOrderSubmit = async function () {
   }
 };
 
-  // Reset Cart
-  shoppingCart = [];
-  saveCartToStorage();
-  updateCartUI();
-
-  // Display Order Success Dialog
-  if (orderSuccessContent && orderSuccessModal) {
-    const hasWorksheets = items.some((i) => i.product_type === "worksheet");
-    const hasImages = items.some((i) => i.product_type === "image");
-
-    let instructionHtml = "";
-
-    if (isFree) {
-      const freeWorksheet = items.find((i) => i.download_url);
-      const downloadLink = freeWorksheet ? freeWorksheet.download_url : "https://drive.google.com/drive/folders/wadfan-freebies";
-      instructionHtml = `
-        <div style="background: #D1FAE5; color: #065F46; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left;">
-          <strong><i class="fa-solid fa-gift"></i> ดาวน์โหลดฟรีได้ทันที:</strong>
-          <p style="font-size: 0.9rem; margin-top: 4px;">เราได้เตรียมไฟล์ใน Google Drive ให้คุณแล้ว สามารถคลิกดาวน์โหลดได้ทันทีครับ</p>
-          <a href="${downloadLink}" target="_blank" class="btn-primary" style="margin-top: 10px; display: inline-flex;">
-            <i class="fa-solid fa-cloud-arrow-down"></i> เปิด Google Drive ดาวน์โหลดไฟล์
-          </a>
-        </div>
-      `;
-    } else {
-      instructionHtml = `
-        <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left; font-size: 0.9rem; line-height: 1.6;">
-          <p><strong><i class="fa-solid fa-envelope-circle-check text-pink"></i> การจัดส่งไฟล์และสินค้า:</strong></p>
-          ${
-            hasWorksheets
-              ? `<p>📄 <strong>ใบงานออนไลน์:</strong> ทันทีที่แอดมินกดยืนยันยอดชำระเงิน ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> อัตโนมัติทันที</p>`
-              : ""
-          }
-          ${
-            hasImages
-              ? `<p>🎨 <strong>รูปภาพ/งานสั่งทำ:</strong> ทีมงานได้รับไฟล์รูปของคุณเรียบร้อยแล้ว และจะแจ้งเลขพัสดุ (Tracking) ทางอีเมลเมื่อทำการจัดส่งครับ</p>`
-              : ""
-          }
-        </div>
-      `;
-    }
-
-    orderSuccessContent.innerHTML = `
-      <div style="font-size: 3.5rem; color: #10B981; margin-bottom: 10px;">
-        <i class="fa-solid fa-circle-check"></i>
-      </div>
-      <h2 style="font-size: 1.45rem; color: #334155; margin-bottom: 6px;">สั่งซื้อสำเร็จเรียบร้อย!</h2>
-      <p style="color: #64748B; font-size: 0.92rem;">หมายเลขคำสั่งซื้อของคุณคือ: <strong style="color: #FF758F;">${result.order_number}</strong></p>
-      
-      ${instructionHtml}
-
-      <button class="btn-secondary full-width" onclick="document.getElementById('orderSuccessModal').classList.remove('open');">
-        กลับสู่หน้าร้าน
-      </button>
-    `;
-
-    orderSuccessModal.classList.add("open");
-  }
-};
-
 function handleFreebieSubmit() {
   const emailVal = freebieEmail ? freebieEmail.value.trim() : "";
   if (!emailVal || !emailVal.includes("@")) {
@@ -1009,32 +976,86 @@ function setupEventListeners() {
   drawerLinks.forEach((l) => l.addEventListener("click", closeMobileNav));
 
   // Desktop & Mobile Navbar Active Tab Switcher & Scrollspy
-  const allNavLinks = document.querySelectorAll(".nav-link");
-  allNavLinks.forEach((link) => {
-    link.addEventListener("click", function () {
-      allNavLinks.forEach((l) => l.classList.remove("active"));
+  const allNavClickableLinks = document.querySelectorAll(".nav-link, .drawer-link");
+  allNavClickableLinks.forEach((link) => {
+    link.addEventListener("click", function (e) {
+      // ล็อค scrollspy ไม่ให้เขียนทับค่า active เป็นเวลา 1.2 วินาที ขณะที่หน้าจอกำลัง Smooth Scroll
+      isManualNavClick = true;
+      if (manualNavTimer) clearTimeout(manualNavTimer);
+      manualNavTimer = setTimeout(() => {
+        isManualNavClick = false;
+      }, 1200);
+
+      // ลบสถานะ active เดิมทั้งหมด
+      document.querySelectorAll(".nav-link").forEach((l) => l.classList.remove("active"));
+      document.querySelectorAll(".drawer-link").forEach((l) => l.classList.remove("active"));
       this.classList.add("active");
+
+      // ซิงค์แท็บที่มี href หรือ onclick เดียวกันระหว่าง Desktop และ Mobile Drawer
+      const href = this.getAttribute("href");
+      const onclickAttr = this.getAttribute("onclick") || "";
+      document.querySelectorAll(".nav-link, .drawer-link").forEach((other) => {
+        if (other === this) return;
+        const otherHref = other.getAttribute("href");
+        const otherOnclick = other.getAttribute("onclick") || "";
+        if (onclickAttr && otherOnclick === onclickAttr) {
+          other.classList.add("active");
+        } else if (!onclickAttr && otherHref === href) {
+          other.classList.add("active");
+        }
+      });
     });
   });
 
+  // Accurate Viewport Scrollspy (คำนวณตามตำแหน่งจริงบนจอ)
   window.addEventListener(
     "scroll",
     () => {
-      const scrollPosition = window.scrollY + 160;
-      const sections = ["faq", "features", "products", "categories", "hero"]; // check bottom to top
+      // หากผู้ใช้เพิ่งคลิกเลือกแท็บจากเมนู ห้าม scrollspy มาเขียนทับเด็ดขาด
+      if (isManualNavClick) return;
 
-      for (const secId of sections) {
-        const sec = document.getElementById(secId);
+      const scrollY = window.scrollY;
+
+      // หากอยู่ที่บนสุดของหน้า (ภายใน 180px) ให้คงสถานะหน้าแรก
+      if (scrollY < 180) {
+        document.querySelectorAll(".nav-link").forEach((link) => {
+          link.classList.toggle("active", link.getAttribute("href") === "#hero");
+        });
+        return;
+      }
+
+      const sections = [
+        { id: "faq", href: "#faq" },
+        { id: "features", href: "#features" },
+        { id: "products", href: "#products" },
+        { id: "categories", href: "#categories" },
+        { id: "hero", href: "#hero" }
+      ];
+
+      for (const item of sections) {
+        const sec = document.getElementById(item.id);
         if (!sec) continue;
-        const top = sec.offsetTop;
-        const height = sec.offsetHeight;
+        const rect = sec.getBoundingClientRect();
 
-        if (scrollPosition >= top && scrollPosition <= top + height) {
-          allNavLinks.forEach((link) => {
+        // ตรวจสอบว่า Section นี้อยู่ในช่วงมุมมองของสายตา
+        if (rect.top <= 250 && rect.bottom >= 150) {
+          document.querySelectorAll(".nav-link").forEach((link) => {
             const href = link.getAttribute("href") || "";
-            if (href === `#${secId}`) {
+            const onclickAttr = link.getAttribute("onclick") || "";
+
+            if (item.id === "products") {
+              if (currentMainType === "image" && onclickAttr.includes("'image'")) {
+                link.classList.add("active");
+              } else if (currentMainType === "worksheet" && onclickAttr.includes("'worksheet'")) {
+                link.classList.add("active");
+              } else if (currentMainType === "all" && href === "#products" && onclickAttr.includes("'image'")) {
+                link.classList.add("active");
+              } else {
+                link.classList.remove("active");
+              }
+            } else if (href === item.href && !onclickAttr) {
               link.classList.add("active");
-            } else if (href.startsWith("#")) {
+            } else {
               link.classList.remove("active");
             }
           });

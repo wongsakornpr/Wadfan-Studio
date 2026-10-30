@@ -403,13 +403,51 @@ class WadfanDataProvider {
         if (status) query = query.eq("status", status);
         if (search) query = query.ilike("title", `%${search}%`);
 
-        const { data, error } = await query;
+        let { data, error } = await query;
+
+        // หากติดปัญหา Join categories ให้ใช้ Fallback Query ดึง products โดยตรง
+        if (error) {
+          console.warn("Products query with joins error, trying direct products query:", error);
+          let simpleQuery = this.supabaseClient
+            .from("products")
+            .select("*, product_variants(*)")
+            .order("created_at", { ascending: false });
+
+          if (type && type !== "all") simpleQuery = simpleQuery.eq("product_type", type);
+          if (status) simpleQuery = simpleQuery.eq("status", status);
+          if (search) simpleQuery = simpleQuery.ilike("title", `%${search}%`);
+
+          const retry = await simpleQuery;
+          data = retry.data;
+          error = retry.error;
+        }
+
         if (!error && data) {
-          return data.map((item) => ({
-            ...item,
-            category_name: item.categories ? item.categories.name : "ทั่วไป",
-            variants: item.product_variants || []
-          }));
+          const localCats = JSON.parse(localStorage.getItem("wadfan_categories") || "[]");
+          const mapped = data.map((item) => {
+            let catName = "ทั่วไป";
+            if (item.categories && item.categories.name) {
+              catName = item.categories.name;
+            } else if (item.category_id) {
+              const matched = localCats.find((c) => String(c.id) === String(item.category_id));
+              if (matched) catName = matched.name;
+            }
+
+            return {
+              ...item,
+              category_name: catName,
+              variants: item.product_variants || []
+            };
+          });
+
+          // บันทึกสำเนาลง LocalStorage ไว้เพื่อเป็น Offline Fallback
+          try {
+            if (!type && !status && !search && !categorySlug) {
+              localStorage.setItem("wadfan_products", JSON.stringify(mapped));
+            }
+          } catch (e) {}
+
+          return mapped;
         }
       } catch (err) {
         console.warn("Supabase products fetch fallback:", err);
@@ -421,12 +459,12 @@ class WadfanDataProvider {
     if (categorySlug && categorySlug !== "all") {
       const cats = JSON.parse(localStorage.getItem("wadfan_categories") || "[]");
       const matchedCat = cats.find((c) => c.slug === categorySlug);
-      if (matchedCat) local = local.filter((p) => p.category_id === matchedCat.id);
+      if (matchedCat) local = local.filter((p) => String(p.category_id) === String(matchedCat.id));
     }
     if (status) local = local.filter((p) => p.status === status);
     if (search) {
       const q = search.toLowerCase();
-      local = local.filter((p) => p.title.toLowerCase().includes(q) || (p.short_desc && p.short_desc.toLowerCase().includes(q)));
+      local = local.filter((p) => (p.title || "").toLowerCase().includes(q) || (p.short_desc && p.short_desc.toLowerCase().includes(q)));
     }
     return local;
   }
@@ -487,6 +525,19 @@ class WadfanDataProvider {
           if (varErr) throw varErr;
         }
 
+        try {
+          const local = JSON.parse(localStorage.getItem("wadfan_products") || "[]");
+          const localItem = {
+            ...payload,
+            id: savedProductId,
+            variants: variants || []
+          };
+          const existingIdx = local.findIndex((p) => p.id === savedProductId);
+          if (existingIdx !== -1) local[existingIdx] = localItem;
+          else local.unshift(localItem);
+          localStorage.setItem("wadfan_products", JSON.stringify(local));
+        } catch (e) {}
+
         return { success: true, id: savedProductId };
       } catch (err) {
         return { success: false, message: err.message };
@@ -527,6 +578,11 @@ class WadfanDataProvider {
       try {
         const { error } = await this.supabaseClient.from("products").delete().eq("id", productId);
         if (error) throw error;
+        try {
+          let local = JSON.parse(localStorage.getItem("wadfan_products") || "[]");
+          local = local.filter((p) => p.id !== productId);
+          localStorage.setItem("wadfan_products", JSON.stringify(local));
+        } catch (e) {}
         return { success: true };
       } catch (err) {
         return { success: false, message: err.message };
