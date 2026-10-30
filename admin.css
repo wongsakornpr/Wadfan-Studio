@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Wadfan Studio - Admin Management Stylesheet
+   Wadfan Studio - Admin Management Stylesheet v2
    Minimal & Warm Tone: Soft Blue, Warm Pink, Pure White
    ========================================================================== */
 
@@ -86,6 +86,95 @@ button {
 }
 
 /* ==========================================================================
+   Admin Authentication Gate (Login Screen)
+   ========================================================================== */
+.admin-auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #FFF0F3 0%, #EBF5FB 100%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-login-card {
+  background-color: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 40px 36px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 45px rgba(79, 163, 209, 0.15), 0 10px 25px rgba(255, 117, 143, 0.1);
+  border: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.login-brand h2 {
+  font-family: var(--font-cute);
+  font-size: 1.6rem;
+  color: var(--text-main);
+  margin-top: 10px;
+}
+
+.login-brand h2 span {
+  color: var(--color-pink-primary);
+}
+
+.login-brand p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.input-password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-password-wrap i {
+  position: absolute;
+  left: 14px;
+  color: var(--text-light);
+}
+
+.input-password-wrap input {
+  padding-left: 42px !important;
+}
+
+.login-hint {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  text-align: left;
+}
+
+.login-footer {
+  margin-top: 24px;
+  font-size: 0.85rem;
+}
+
+.login-footer a {
+  color: var(--color-blue-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
    Admin Header
    ========================================================================== */
 .admin-header {
@@ -155,10 +244,9 @@ button {
 .admin-header-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
-/* Supabase Status Pill */
 .supabase-status-pill {
   display: flex;
   align-items: center;
@@ -171,7 +259,6 @@ button {
   font-weight: 500;
   color: var(--text-main);
   cursor: pointer;
-  transition: var(--transition);
 }
 
 .supabase-status-pill:hover {
@@ -201,24 +288,85 @@ button {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: var(--color-pink-light);
-  color: var(--color-pink-primary);
-  border: 1px solid rgba(255, 117, 143, 0.2);
+  background-color: var(--color-blue-light);
+  color: var(--color-blue-primary);
+  border: 1px solid rgba(79, 163, 209, 0.2);
   border-radius: var(--radius-full);
   font-size: 0.86rem;
   font-weight: 600;
 }
 
 .btn-storefront-link:hover {
-  background-color: var(--color-pink-primary);
+  background-color: var(--color-blue-primary);
+  color: #FFF;
+}
+
+.btn-logout {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background-color: #FEE2E2;
+  color: #EF4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.btn-logout:hover {
+  background-color: #EF4444;
   color: #FFF;
 }
 
 /* ==========================================================================
-   Admin Main & Top Bar
+   Admin Navigation Tabs (Products / Categories / Orders)
+   ========================================================================== */
+.admin-nav-tabs {
+  display: flex;
+  gap: 12px;
+  padding-top: 24px;
+  border-bottom: 2px solid var(--border-light);
+  overflow-x: auto;
+}
+
+.admin-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  transition: var(--transition);
+}
+
+.admin-tab-btn:hover {
+  color: var(--color-pink-primary);
+  background-color: var(--color-pink-light);
+}
+
+.admin-tab-btn.active {
+  color: var(--color-pink-primary);
+  border-bottom-color: var(--color-pink-primary);
+  background-color: var(--color-white);
+}
+
+.order-badge-pill {
+  background-color: #EF4444;
+  color: #FFF;
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+/* ==========================================================================
+   Admin Main & Content
    ========================================================================== */
 .admin-main {
-  padding: 36px 24px 60px;
+  padding: 30px 24px 60px;
 }
 
 .admin-top-bar {
@@ -249,10 +397,11 @@ button {
   gap: 12px;
 }
 
-/* Common Buttons */
+/* Buttons */
 .btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background: linear-gradient(135deg, var(--color-pink-primary), #FF8FA3);
   color: #FFF;
@@ -272,6 +421,7 @@ button {
 .btn-secondary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background-color: var(--color-white);
   color: var(--color-blue-primary);
@@ -294,9 +444,11 @@ button {
   font-size: 0.82rem;
 }
 
-/* ==========================================================================
-   Stats Section
-   ========================================================================== */
+.full-width {
+  width: 100%;
+}
+
+/* Stats */
 .admin-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -345,9 +497,7 @@ button {
   margin-top: 3px;
 }
 
-/* ==========================================================================
-   Toolbar & Filters
-   ========================================================================== */
+/* Toolbar */
 .admin-toolbar-card {
   background-color: var(--color-white);
   border: 1px solid var(--border-card);
@@ -364,6 +514,7 @@ button {
 .admin-filter-pills {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .admin-pill {
@@ -401,7 +552,7 @@ button {
   padding: 8px 16px;
   border-radius: var(--radius-full);
   width: 100%;
-  max-width: 300px;
+  max-width: 320px;
 }
 
 .admin-search-box:focus-within {
@@ -423,9 +574,7 @@ button {
   color: var(--text-main);
 }
 
-/* ==========================================================================
-   Products Table
-   ========================================================================== */
+/* Tables */
 .admin-table-card {
   background-color: var(--color-white);
   border: 1px solid var(--border-card);
@@ -465,7 +614,6 @@ button {
   background-color: #FCFDFE;
 }
 
-/* Table Elements */
 .table-prod-thumb {
   width: 56px;
   height: 56px;
@@ -520,14 +668,19 @@ button {
   font-weight: 600;
 }
 
-.status-active {
+.status-paid, .status-active {
   background-color: var(--color-green-light);
   color: #065F46;
 }
 
-.status-draft {
-  background-color: #F1F5F9;
-  color: #64748B;
+.status-pending, .status-draft {
+  background-color: var(--color-yellow-light);
+  color: #B45309;
+}
+
+.status-shipped {
+  background-color: var(--color-blue-light);
+  color: var(--color-blue-primary);
 }
 
 .variant-chips-wrap {
@@ -548,6 +701,23 @@ button {
 
 .variant-chip strong {
   color: var(--color-pink-primary);
+}
+
+.drive-badge-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #F0F9FF;
+  color: #0284C7;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.drive-badge-link:hover {
+  background-color: #0284C7;
+  color: #FFF;
 }
 
 .table-actions {
@@ -584,8 +754,72 @@ button {
 }
 
 /* ==========================================================================
-   Modals & Forms
+   Order Details Modal & Workflow
    ========================================================================== */
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+.order-customer-box, .order-action-box {
+  background-color: var(--color-bg-soft);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-light);
+}
+
+.order-box-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.order-item-card {
+  background-color: #FFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.file-chip-drive {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EBF5FB;
+  color: #0369A1;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  margin-top: 6px;
+}
+
+.tracking-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #FFF;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  margin-top: 12px;
+}
+
+/* Modals */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -687,7 +921,7 @@ button {
   background-color: #FAFBFD;
 }
 
-/* Form Styles */
+/* Forms */
 .form-section {
   display: flex;
   flex-direction: column;
@@ -731,10 +965,6 @@ button {
   border: 1px solid #FDE68A;
 }
 
-.btn-preset:hover {
-  background-color: #FDE68A;
-}
-
 .form-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -767,6 +997,8 @@ button {
 input[type="text"],
 input[type="url"],
 input[type="number"],
+input[type="password"],
+input[type="tel"],
 select,
 textarea {
   width: 100%;
@@ -788,7 +1020,7 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(79, 163, 209, 0.15);
 }
 
-/* Type Selector Radio Cards */
+/* Radio Type Cards */
 .type-selector-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -812,15 +1044,9 @@ textarea:focus {
   accent-color: var(--color-pink-primary);
 }
 
-.type-radio-card:hover {
+.type-radio-card:hover, .type-radio-card.active {
   border-color: var(--color-pink-primary);
   background-color: var(--color-pink-light);
-}
-
-.type-radio-card.active {
-  border-color: var(--color-pink-primary);
-  background-color: var(--color-pink-light);
-  box-shadow: 0 4px 12px rgba(255, 117, 143, 0.15);
 }
 
 .type-radio-content {
@@ -848,7 +1074,6 @@ textarea:focus {
   display: block;
 }
 
-/* Type Specific Box */
 .type-specific-box {
   background-color: var(--color-bg-soft);
   border-radius: var(--radius-lg);
@@ -895,7 +1120,7 @@ textarea:focus {
   background-color: #FEE2E2;
 }
 
-/* Supabase Connection Test Result Box */
+/* Connection Test Box */
 .connection-test-result {
   padding: 12px 16px;
   border-radius: var(--radius-md);
@@ -1010,6 +1235,7 @@ pre {
 .text-pink { color: var(--color-pink-primary) !important; }
 .text-blue { color: var(--color-blue-primary) !important; }
 .text-purple { color: var(--color-purple-primary) !important; }
+.text-green { color: var(--color-green-primary) !important; }
 .text-yellow-dark { color: var(--color-yellow-dark) !important; }
 
 .bg-pink-light { background-color: var(--color-pink-light); }
@@ -1021,6 +1247,9 @@ pre {
 @media (max-width: 1024px) {
   .admin-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .order-detail-grid {
+    grid-template-columns: 1fr;
   }
 }
 

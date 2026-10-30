@@ -206,9 +206,56 @@ ul {
   gap: 5px;
 }
 
-.admin-quick-link:hover {
-  color: var(--color-blue-hover);
-  text-decoration: underline;
+/* Discreet Staff Admin Link in Footer */
+.discreet-admin-link {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  opacity: 0.6;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.discreet-admin-link:hover {
+  opacity: 1;
+  color: var(--color-pink-primary);
+}
+
+/* Upload Dropzone in Checkout Modal */
+.image-upload-group {
+  background-color: var(--color-bg-soft);
+  border: 1px dashed #CBD5E1;
+  border-radius: var(--radius-lg);
+  padding: 14px;
+}
+
+.upload-dropzone {
+  cursor: pointer;
+  background-color: #FFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.upload-dropzone:hover {
+  border-color: var(--color-pink-primary);
+  background-color: var(--color-pink-light);
+}
+
+.dropzone-icon {
+  font-size: 2rem;
+  color: var(--color-pink-primary);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.dropzone-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 /* Admin Badge in Navbar */

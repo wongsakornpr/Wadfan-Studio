@@ -1,5 +1,5 @@
 /**
- * Wadfan Studio (วาดฝัน สตูดิโอ) - Storefront Script
+ * Wadfan Studio (วาดฝัน สตูดิโอ) - Storefront Script v2
  * Sells Digital Art / Images & Educational Worksheets
  * Integrated with Supabase Data Provider (window.wadfanData)
  */
@@ -12,12 +12,14 @@ let currentCategoryFilter = "all";
 let currentSearch = "";
 let selectedVariantForModal = null;
 let currentPreviewProduct = null;
+let customerAttachedFile = null;
 
 // Cart State (stored in localStorage)
 let shoppingCart = [];
 
 // DOM Elements
 const productsGrid = document.getElementById("productsGrid");
+const categoriesGrid = document.getElementById("categoriesGrid");
 const filterTabs = document.getElementById("filterTabs");
 const searchInput = document.getElementById("productSearchInput");
 const cartBtn = document.getElementById("cartBtn");
@@ -47,6 +49,12 @@ const drawerLinks = document.querySelectorAll(".drawer-link");
 const checkoutModal = document.getElementById("checkoutModal");
 const checkoutCloseBtn = document.getElementById("checkoutCloseBtn");
 const checkoutDueAmount = document.getElementById("checkoutDueAmount");
+const checkoutImageUploadBox = document.getElementById("checkoutImageUploadBox");
+const customerImageFileInput = document.getElementById("customerImageFile");
+const fileUploadPreview = document.getElementById("fileUploadPreview");
+const dropzoneText = document.getElementById("dropzoneText");
+const orderSuccessModal = document.getElementById("orderSuccessModal");
+const orderSuccessContent = document.getElementById("orderSuccessContent");
 
 // Freebie Form
 const freebieSubmitBtn = document.getElementById("freebieSubmitBtn");
@@ -63,15 +71,72 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function loadStoreData() {
-  categoriesList = await window.wadfanData.getCategories();
-  productsList = await window.wadfanData.getProducts({ status: "active" });
+  try {
+    categoriesList = await window.wadfanData.getCategories();
+  } catch (e) {
+    console.warn("Could not load categories:", e);
+    categoriesList = [];
+  }
+
+  try {
+    productsList = await window.wadfanData.getProducts({ status: "active" });
+  } catch (e) {
+    console.warn("Could not load products:", e);
+    productsList = [];
+  }
+
+  renderCategoriesGrid();
   renderSubFilterTabs();
   renderProducts();
 }
 
 // ==============================================================================
-// 2. Filter & Category Tabs
+// 2. Categories & Filter Tabs
 // ==============================================================================
+function renderCategoriesGrid() {
+  if (!categoriesGrid) return;
+
+  if (categoriesList.length === 0) {
+    categoriesGrid.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #94a3b8;">
+        <i class="fa-solid fa-shapes" style="font-size: 2rem; margin-bottom: 8px;"></i>
+        <p>ยังไม่มีหมวดหมู่สินค้า</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Cute icons and colors cycle
+  const iconPalette = [
+    { icon: "🎨", bg: "bg-pink-light" },
+    { icon: "📱", bg: "bg-blue-light" },
+    { icon: "✨", bg: "bg-yellow-light" },
+    { icon: "🖼️", bg: "bg-purple-light" },
+    { icon: "ก", bg: "bg-pink-light" },
+    { icon: "123", bg: "bg-blue-light" },
+    { icon: "ABC", bg: "bg-purple-light" },
+    { icon: "✂️", bg: "bg-yellow-light" }
+  ];
+
+  categoriesGrid.innerHTML = categoriesList
+    .map((c, idx) => {
+      const palette = iconPalette[idx % iconPalette.length];
+      const typeLabel = c.product_type === "image" ? "รูปภาพดิจิทัล" : "ใบงานเด็ก";
+
+      return `
+      <div class="category-card" onclick="window.filterByCategorySlug('${c.slug}')">
+        <div class="cat-icon-wrapper ${palette.bg}">
+          <span class="cat-emoji">${palette.icon}</span>
+        </div>
+        <h3>${c.name}</h3>
+        <p>คลิกเพื่อเลือกชมผลงานในหมวดหมู่นี้</p>
+        <span class="cat-count">${typeLabel}</span>
+      </div>
+    `;
+    })
+    .join("");
+}
+
 function renderSubFilterTabs() {
   if (!filterTabs) return;
 
@@ -95,27 +160,19 @@ function renderSubFilterTabs() {
   `;
 }
 
-// Global Filter by Main Type (All / Image / Worksheet)
 window.filterByMainType = function (mainType) {
   currentMainType = mainType;
   currentCategoryFilter = "all";
 
-  // Update Main Type Tabs Visuals
   document.querySelectorAll(".main-type-tab").forEach((tab) => {
-    if (tab.dataset.maintype === mainType) {
-      tab.classList.add("active");
-    } else {
-      tab.classList.remove("active");
-    }
+    tab.classList.toggle("active", tab.dataset.maintype === mainType);
   });
 
   renderSubFilterTabs();
   renderProducts();
 
   const prodSection = document.getElementById("products");
-  if (prodSection) {
-    prodSection.scrollIntoView({ behavior: "smooth" });
-  }
+  if (prodSection) prodSection.scrollIntoView({ behavior: "smooth" });
 };
 
 window.filterByCategorySlug = function (slug) {
@@ -124,7 +181,6 @@ window.filterByCategorySlug = function (slug) {
     currentMainType = cat.product_type;
     currentCategoryFilter = slug;
 
-    // Update Main Tabs
     document.querySelectorAll(".main-type-tab").forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.maintype === currentMainType);
     });
@@ -133,9 +189,7 @@ window.filterByCategorySlug = function (slug) {
     renderProducts();
 
     const prodSection = document.getElementById("products");
-    if (prodSection) {
-      prodSection.scrollIntoView({ behavior: "smooth" });
-    }
+    if (prodSection) prodSection.scrollIntoView({ behavior: "smooth" });
   }
 };
 
@@ -146,12 +200,8 @@ function renderProducts() {
   if (!productsGrid) return;
 
   const filtered = productsList.filter((item) => {
-    // 1. Main Type
-    if (currentMainType !== "all" && item.product_type !== currentMainType) {
-      return false;
-    }
+    if (currentMainType !== "all" && item.product_type !== currentMainType) return false;
 
-    // 2. Sub Category / Free
     if (currentCategoryFilter === "free") {
       const hasFree = item.base_price === 0 || (item.variants && item.variants.some((v) => v.price === 0));
       if (!hasFree) return false;
@@ -160,7 +210,6 @@ function renderProducts() {
       if (cat && item.category_id !== cat.id) return false;
     }
 
-    // 3. Search Query
     if (currentSearch.trim() !== "") {
       const q = currentSearch.toLowerCase().trim();
       const matchTitle = item.title.toLowerCase().includes(q);
@@ -177,7 +226,7 @@ function renderProducts() {
       <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background: #fff; border-radius: 20px; border: 1px dashed #CBD5E1;">
         <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; color: #94A3B8; margin-bottom: 12px; display: block;"></i>
         <h3 style="font-size: 1.2rem; color: #334155; margin-bottom: 6px;">ไม่พบสินค้าที่ตรงกับการค้นหา</h3>
-        <p style="font-size: 0.9rem; color: #64748B;">ลองเลือกหมวดหมู่ใหม่ หรือกดดูสินค้าทั้งหมด</p>
+        <p style="font-size: 0.9rem; color: #64748B;">ลองเลือกหมวดหมู่อื่น หรือกดดูสินค้าทั้งหมด</p>
         <button class="btn-secondary" style="margin-top: 16px;" onclick="window.filterByMainType('all')">ดูสินค้าทั้งหมด</button>
       </div>
     `;
@@ -192,12 +241,11 @@ function renderProducts() {
       const typePillClass = isImage ? "pill-image" : "pill-worksheet";
       const typePillLabel = isImage ? "🎨 รูปภาพดิจิทัล" : "📄 ใบงานการเรียนรู้";
 
-      // Meta detail
       let metaInfoHtml = "";
       if (isImage) {
         const res = item.metadata ? item.metadata.resolution || "High-Res" : "High-Res";
         const variantsCount = item.variants ? item.variants.length : 1;
-        metaInfoHtml = `<span><i class="fa-solid fa-expand"></i> ${res}</span> <span>${variantsCount} ขนาด</span>`;
+        metaInfoHtml = `<span><i class="fa-solid fa-expand"></i> ${res}</span> <span>${variantsCount} ตัวเลือก</span>`;
       } else {
         const grade = item.metadata ? item.metadata.grade_level || "ปฐมวัย" : "ปฐมวัย";
         const pages = item.metadata ? item.metadata.total_pages || 20 : 20;
@@ -213,7 +261,7 @@ function renderProducts() {
           <img src="${item.cover_image_url || 'https://via.placeholder.com/400'}" class="product-cover-img" alt="${item.title}" onerror="this.src='https://via.placeholder.com/400?text=Wadfan+Studio'">
 
           <button class="quick-preview-btn" onclick="window.openProductPreview('${item.id}')">
-            <i class="fa-regular fa-eye"></i> ดูรายละเอียด & เลือกขนาด
+            <i class="fa-regular fa-eye"></i> ดูตัวเลือก & ขนาด
           </button>
         </div>
 
@@ -235,7 +283,7 @@ function renderProducts() {
             </div>
 
             <button class="btn-primary btn-sm" onclick="window.openProductPreview('${item.id}')">
-              <span>เลือกขนาด & ซื้อ</span> <i class="fa-solid fa-arrow-right"></i>
+              <span>เลือกขนาด & สั่งซื้อ</span> <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
@@ -246,7 +294,7 @@ function renderProducts() {
 }
 
 // ==============================================================================
-// 4. Quick Preview & Size Variant Selector Modal
+// 4. Quick Preview & Variant Selector Modal
 // ==============================================================================
 window.openProductPreview = function (productId) {
   const product = productsList.find((p) => p.id === productId);
@@ -254,17 +302,17 @@ window.openProductPreview = function (productId) {
 
   currentPreviewProduct = product;
   const isImage = product.product_type === "image";
-  const variants = product.variants || [
+  const variants = product.variants && product.variants.length > 0 ? product.variants : [
     {
       id: "def-1",
       name: "ขนาดมาตรฐาน",
-      dimension_or_detail: "พร้อมใช้งาน",
+      dimension_or_detail: "พร้อมใช้งานทันที",
       file_format: isImage ? "PNG/JPG" : "PDF",
-      price: product.base_price
+      price: product.base_price,
+      download_file_url: product.download_url || ""
     }
   ];
 
-  // Default select first variant
   selectedVariantForModal = variants[0];
 
   const variantsListHtml = variants
@@ -288,19 +336,17 @@ window.openProductPreview = function (productId) {
           <i class="${isImage ? 'fa-solid fa-palette text-blue' : 'fa-solid fa-file-pdf text-pink'}"></i> 
           ${isImage ? 'Digital Artwork & Image' : 'Educational Worksheet'}
         </span>
-        <span class="meta-grade"><i class="fa-solid fa-shield-halved text-green"></i> ลิขสิทธิ์แท้ Wadfan Studio</span>
+        <span class="meta-grade"><i class="fa-solid fa-cloud text-blue"></i> Google Drive Cloud Delivery</span>
       </div>
 
       <h2 class="preview-title">${product.title}</h2>
       <p class="preview-desc-full">${product.full_desc || product.short_desc || ""}</p>
 
       <div class="preview-grid-details">
-        <!-- Left: Image Preview -->
         <div style="border-radius: 14px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); height: 260px; background: #FAF9F8;">
           <img src="${product.cover_image_url}" style="width: 100%; height: 100%; object-fit: cover;" alt="${product.title}">
         </div>
 
-        <!-- Right: Variant & Size Selector -->
         <div class="preview-details-info">
           <div class="variant-selector-box">
             <div class="variant-selector-title">
@@ -333,12 +379,10 @@ window.selectModalVariant = function (variantId) {
 
   selectedVariantForModal = v;
 
-  // Update UI Card Selected State
   document.querySelectorAll(".variant-option-card").forEach((card) => {
     card.classList.toggle("active", card.dataset.variantId === variantId);
   });
 
-  // Update Button Text
   const btnText = document.getElementById("modalBtnText");
   if (btnText) {
     btnText.textContent = v.price === 0 ? "ดาวน์โหลดฟรีทันที" : `ใส่ตะกร้า ฿${v.price}`;
@@ -348,20 +392,15 @@ window.selectModalVariant = function (variantId) {
 window.addSelectedVariantToCart = function () {
   if (!currentPreviewProduct || !selectedVariantForModal) return;
 
-  // If free, trigger instant download
-  if (selectedVariantForModal.price === 0) {
-    showToast(`🎉 เริ่มดาวน์โหลด "${currentPreviewProduct.title}" ฟรีแล้ว!`, "success");
-    window.closePreviewModal();
-    return;
-  }
-
   const cartItem = {
     cartItemId: `${currentPreviewProduct.id}-${selectedVariantForModal.id}`,
     productId: currentPreviewProduct.id,
     variantId: selectedVariantForModal.id,
     title: currentPreviewProduct.title,
     variantName: selectedVariantForModal.name,
+    productType: currentPreviewProduct.product_type,
     coverUrl: currentPreviewProduct.cover_image_url,
+    downloadUrl: selectedVariantForModal.download_file_url || currentPreviewProduct.download_url || "",
     fileFormat: selectedVariantForModal.file_format || "Digital File",
     price: selectedVariantForModal.price
   };
@@ -472,11 +511,23 @@ function loadCartFromStorage() {
 }
 
 // ==============================================================================
-// 6. Checkout & Freebies
+// 6. Checkout Flow (Orders & Google Drive File Upload)
 // ==============================================================================
 function openCheckoutModal() {
   if (shoppingCart.length === 0) return;
   closeCartDrawer();
+
+  // If cart contains image products, show upload section
+  const hasImage = shoppingCart.some((i) => i.productType === "image");
+  if (checkoutImageUploadBox) {
+    checkoutImageUploadBox.style.display = hasImage ? "block" : "none";
+  }
+
+  // Reset file input
+  customerAttachedFile = null;
+  if (fileUploadPreview) fileUploadPreview.style.display = "none";
+  if (dropzoneText) dropzoneText.textContent = "คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)";
+
   if (checkoutModal) checkoutModal.classList.add("open");
 }
 
@@ -484,17 +535,130 @@ function closeCheckoutModal() {
   if (checkoutModal) checkoutModal.classList.remove("open");
 }
 
-window.handleOrderSubmit = function () {
-  const name = document.getElementById("orderName").value;
-  const email = document.getElementById("orderEmail").value;
+// File Attachment Handler
+if (customerImageFileInput) {
+  customerImageFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      customerAttachedFile = file;
+      if (dropzoneText) dropzoneText.textContent = `ไฟล์ที่เลือก: ${file.name}`;
+      if (fileUploadPreview) {
+        fileUploadPreview.style.display = "block";
+        fileUploadPreview.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #FFF0F3; border-radius: 8px; margin-top: 8px; font-size: 0.85rem;">
+            <span><i class="fa-solid fa-file-image text-pink"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+            <button type="button" style="color: #EF4444; font-size: 1rem;" onclick="window.clearAttachedFile()">&times;</button>
+          </div>
+        `;
+      }
+    }
+  });
+}
+
+window.clearAttachedFile = function () {
+  customerAttachedFile = null;
+  if (customerImageFileInput) customerImageFileInput.value = "";
+  if (fileUploadPreview) fileUploadPreview.style.display = "none";
+  if (dropzoneText) dropzoneText.textContent = "คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)";
+};
+
+window.handleOrderSubmit = async function () {
+  const name = document.getElementById("orderName").value.trim();
+  const email = document.getElementById("orderEmail").value.trim();
+  const phone = document.getElementById("orderPhone").value.trim();
+
+  const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
+  const isFree = totalAmount === 0;
+
+  // Prepare Uploaded Files Simulation
+  const uploadedFiles = [];
+  if (customerAttachedFile) {
+    uploadedFiles.push({
+      name: customerAttachedFile.name,
+      size: customerAttachedFile.size,
+      type: customerAttachedFile.type
+    });
+  }
+
+  // Order Items
+  const items = shoppingCart.map((i) => ({
+    product_title: i.title,
+    variant_name: i.variantName,
+    product_type: i.productType || "worksheet",
+    download_url: i.downloadUrl || "",
+    price: i.price
+  }));
+
+  const orderData = {
+    customer_name: name,
+    customer_email: email,
+    customer_phone: phone,
+    total_amount: totalAmount,
+    uploaded_files: uploadedFiles
+  };
+
+  const result = await window.wadfanData.createOrder(orderData, items);
 
   closeCheckoutModal();
 
+  // Reset Cart
   shoppingCart = [];
   saveCartToStorage();
   updateCartUI();
 
-  showToast(`🎉 ขอบพระคุณคุณ ${name}! ระบบจัดส่งลิงก์ดาวน์โหลดไฟล์ภาพและใบงานไปที่ ${email} เรียบร้อยแล้ว`, "success");
+  // Display Order Success Dialog
+  if (orderSuccessContent && orderSuccessModal) {
+    const hasWorksheets = items.some((i) => i.product_type === "worksheet");
+    const hasImages = items.some((i) => i.product_type === "image");
+
+    let instructionHtml = "";
+
+    if (isFree) {
+      const freeWorksheet = items.find((i) => i.download_url);
+      const downloadLink = freeWorksheet ? freeWorksheet.download_url : "https://drive.google.com/drive/folders/wadfan-freebies";
+      instructionHtml = `
+        <div style="background: #D1FAE5; color: #065F46; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left;">
+          <strong><i class="fa-solid fa-gift"></i> ดาวน์โหลดฟรีได้ทันที:</strong>
+          <p style="font-size: 0.9rem; margin-top: 4px;">เราได้เตรียมไฟล์ใน Google Drive ให้คุณแล้ว สามารถคลิกดาวน์โหลดได้ทันทีครับ</p>
+          <a href="${downloadLink}" target="_blank" class="btn-primary" style="margin-top: 10px; display: inline-flex;">
+            <i class="fa-solid fa-cloud-arrow-down"></i> เปิด Google Drive ดาวน์โหลดไฟล์
+          </a>
+        </div>
+      `;
+    } else {
+      instructionHtml = `
+        <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left; font-size: 0.9rem; line-height: 1.6;">
+          <p><strong><i class="fa-solid fa-envelope-circle-check text-pink"></i> การจัดส่งไฟล์และสินค้า:</strong></p>
+          ${
+            hasWorksheets
+              ? `<p>📄 <strong>ใบงานออนไลน์:</strong> ทันทีที่แอดมินกดยืนยันยอดชำระเงิน ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> อัตโนมัติทันที</p>`
+              : ""
+          }
+          ${
+            hasImages
+              ? `<p>🎨 <strong>รูปภาพ/งานสั่งทำ:</strong> ทีมงานได้รับไฟล์รูปของคุณเรียบร้อยแล้ว และจะแจ้งเลขพัสดุ (Tracking) ทางอีเมลเมื่อทำการจัดส่งครับ</p>`
+              : ""
+          }
+        </div>
+      `;
+    }
+
+    orderSuccessContent.innerHTML = `
+      <div style="font-size: 3.5rem; color: #10B981; margin-bottom: 10px;">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h2 style="font-size: 1.45rem; color: #334155; margin-bottom: 6px;">สั่งซื้อสำเร็จเรียบร้อย!</h2>
+      <p style="color: #64748B; font-size: 0.92rem;">หมายเลขคำสั่งซื้อของคุณคือ: <strong style="color: #FF758F;">${result.order_number}</strong></p>
+      
+      ${instructionHtml}
+
+      <button class="btn-secondary full-width" onclick="document.getElementById('orderSuccessModal').classList.remove('open');">
+        กลับสู่หน้าร้าน
+      </button>
+    `;
+
+    orderSuccessModal.classList.add("open");
+  }
 };
 
 function handleFreebieSubmit() {
@@ -504,7 +668,7 @@ function handleFreebieSubmit() {
     return;
   }
 
-  showToast(`✨ ส่งลิงก์ดาวน์โหลดของขวัญดิจิทัลฟรีไปยัง ${emailVal} แล้ว!`, "success");
+  showToast(`✨ ส่งลิงก์ดาวน์โหลดของขวัญ Google Drive ฟรีไปยัง ${emailVal} แล้ว!`, "success");
   if (freebieEmail) freebieEmail.value = "";
 }
 
@@ -512,28 +676,23 @@ function handleFreebieSubmit() {
 // 7. Event Listeners & Accordion
 // ==============================================================================
 function setupEventListeners() {
-  // Main Type Tabs Click
   document.querySelectorAll(".main-type-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       window.filterByMainType(tab.dataset.maintype);
     });
   });
 
-  // Filter Tabs Subcategory Click
   if (filterTabs) {
     filterTabs.addEventListener("click", (e) => {
       const btn = e.target.closest(".filter-btn");
       if (!btn) return;
-
       document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-
       currentCategoryFilter = btn.dataset.filter;
       renderProducts();
     });
   }
 
-  // Search input
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       currentSearch = e.target.value;
@@ -541,12 +700,10 @@ function setupEventListeners() {
     });
   }
 
-  // Cart drawer triggers
   if (cartBtn) cartBtn.addEventListener("click", openCartDrawer);
   if (cartCloseBtn) cartCloseBtn.addEventListener("click", closeCartDrawer);
   if (cartBackdrop) cartBackdrop.addEventListener("click", closeCartDrawer);
 
-  // Preview modal triggers
   if (modalCloseBtn) modalCloseBtn.addEventListener("click", closePreviewModal);
   if (previewModal) {
     previewModal.addEventListener("click", (e) => {
@@ -554,11 +711,9 @@ function setupEventListeners() {
     });
   }
 
-  // Checkout modal
   if (checkoutBtn) checkoutBtn.addEventListener("click", openCheckoutModal);
   if (checkoutCloseBtn) checkoutCloseBtn.addEventListener("click", closeCheckoutModal);
 
-  // Freebie form submit
   if (freebieSubmitBtn) {
     freebieSubmitBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -566,7 +721,6 @@ function setupEventListeners() {
     });
   }
 
-  // Mobile navigation
   if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener("click", () => {
       mobileDrawer.classList.add("open");
@@ -593,9 +747,7 @@ function setupAccordion() {
     header.addEventListener("click", () => {
       const isOpen = item.classList.contains("active");
       accordionItems.forEach((other) => other.classList.remove("active"));
-      if (!isOpen) {
-        item.classList.add("active");
-      }
+      if (!isOpen) item.classList.add("active");
     });
   });
 }

@@ -1,25 +1,32 @@
 /**
- * Wadfan Studio - Admin Management Dashboard Logic
- * Minimal & Warm Backend Manager for Images & Worksheets
+ * Wadfan Studio - Admin Management Dashboard Logic v2
+ * Comprehensive Features:
+ * 1. Admin Authentication Gate (ระบบล็อกอินป้องกันลูกค้า)
+ * 2. Product Management (พร้อม Google Drive Download URL)
+ * 3. Category Management (สร้าง/แก้ไข/ลบหมวดหมู่ได้เอง)
+ * 4. Order Management (ยืนยันชำระเงิน, ส่งลิงก์ Google Drive อัตโนมัติ, บันทึกขนส่ง & Tracking)
  */
 
 // State
 let allProducts = [];
 let allCategories = [];
-let currentAdminType = "all";
-let adminSearchQuery = "";
+let allOrders = [];
+
+let currentAdminTab = "products"; // 'products' | 'categories' | 'orders'
+let currentProductTypeFilter = "all";
+let productSearchQuery = "";
+
+let currentOrderStatusFilter = "all";
+let orderSearchQuery = "";
+
 let editingProductId = null;
+let editingCategoryId = null;
+let currentViewingOrder = null;
 
-// DOM Elements
-const adminProductsTableBody = document.getElementById("adminProductsTableBody");
-const adminFilterPills = document.getElementById("adminFilterPills");
-const adminSearchInput = document.getElementById("adminSearchInput");
-
-// Stats Elements
-const statTotalProducts = document.getElementById("statTotalProducts");
-const statTotalImages = document.getElementById("statTotalImages");
-const statTotalWorksheets = document.getElementById("statTotalWorksheets");
-const statTotalVariants = document.getElementById("statTotalVariants");
+// DOM Elements - Auth
+const adminAuthOverlay = document.getElementById("adminAuthOverlay");
+const adminMainWrapper = document.getElementById("adminMainWrapper");
+const adminPasscode = document.getElementById("adminPasscode");
 
 // Connection Elements
 const dbStatusDot = document.getElementById("dbStatusDot");
@@ -33,14 +40,21 @@ const testConnectionBtn = document.getElementById("testConnectionBtn");
 const saveSupabaseConfigBtn = document.getElementById("saveSupabaseConfigBtn");
 const connectionTestResult = document.getElementById("connectionTestResult");
 
-// SQL Modal Elements
+// SQL Modal
 const openSqlModalBtn = document.getElementById("openSqlModalBtn");
 const sqlModal = document.getElementById("sqlModal");
 const closeSqlModalBtn = document.getElementById("closeSqlModalBtn");
 const sqlCodeBlock = document.getElementById("sqlCodeBlock");
 const copySqlBtn = document.getElementById("copySqlBtn");
 
-// Product Modal Elements
+// Tab 1: Products Elements
+const adminProductsTableBody = document.getElementById("adminProductsTableBody");
+const adminFilterPills = document.getElementById("adminFilterPills");
+const adminSearchInput = document.getElementById("adminSearchInput");
+const statTotalProducts = document.getElementById("statTotalProducts");
+const statTotalImages = document.getElementById("statTotalImages");
+const statTotalWorksheets = document.getElementById("statTotalWorksheets");
+const statTotalVariants = document.getElementById("statTotalVariants");
 const addNewProductBtn = document.getElementById("addNewProductBtn");
 const productModal = document.getElementById("productModal");
 const closeProductModalBtn = document.getElementById("closeProductModalBtn");
@@ -49,17 +63,16 @@ const productForm = document.getElementById("productForm");
 const modalProductTitle = document.getElementById("modalProductTitle");
 const formProductId = document.getElementById("formProductId");
 
-// Form Inputs
+// Form Inputs - Product
 const typeRadios = document.querySelectorAll('input[name="product_type"]');
 const formCategory = document.getElementById("formCategory");
 const formTitle = document.getElementById("formTitle");
 const formCoverUrl = document.getElementById("formCoverUrl");
+const formDownloadUrl = document.getElementById("formDownloadUrl");
 const formTag = document.getElementById("formTag");
 const formStatus = document.getElementById("formStatus");
 const formShortDesc = document.getElementById("formShortDesc");
 const formFullDesc = document.getElementById("formFullDesc");
-
-// Type-specific field boxes
 const imageFieldsBox = document.getElementById("imageFieldsBox");
 const worksheetFieldsBox = document.getElementById("worksheetFieldsBox");
 const formOrientation = document.getElementById("formOrientation");
@@ -68,52 +81,125 @@ const formPalette = document.getElementById("formPalette");
 const formGradeLevel = document.getElementById("formGradeLevel");
 const formTotalPages = document.getElementById("formTotalPages");
 const formHasAnswerKey = document.getElementById("formHasAnswerKey");
-
-// Variant Manager
 const variantsContainer = document.getElementById("variantsContainer");
 const addVariantRowBtn = document.getElementById("addVariantRowBtn");
 const applyPresetBtn = document.getElementById("applyPresetBtn");
+
+// Tab 2: Category Elements
+const adminCategoriesTableBody = document.getElementById("adminCategoriesTableBody");
+const addNewCategoryBtn = document.getElementById("addNewCategoryBtn");
+const categoryModal = document.getElementById("categoryModal");
+const closeCategoryModalBtn = document.getElementById("closeCategoryModalBtn");
+const modalCategoryTitle = document.getElementById("modalCategoryTitle");
+const formCategoryId = document.getElementById("formCategoryId");
+const categoryNameInput = document.getElementById("categoryNameInput");
+const categorySlugInput = document.getElementById("categorySlugInput");
+const categoryProductTypeInput = document.getElementById("categoryProductTypeInput");
+const categorySortOrderInput = document.getElementById("categorySortOrderInput");
+
+// Tab 3: Orders Elements
+const adminOrdersTableBody = document.getElementById("adminOrdersTableBody");
+const adminOrderFilterPills = document.getElementById("adminOrderFilterPills");
+const adminOrderSearchInput = document.getElementById("adminOrderSearchInput");
+const pendingOrdersCountBadge = document.getElementById("pendingOrdersCountBadge");
+const orderDetailModal = document.getElementById("orderDetailModal");
+const orderDetailModalBody = document.getElementById("orderDetailModalBody");
+const emailPreviewModal = document.getElementById("emailPreviewModal");
+const emailPreviewModalContent = document.getElementById("emailPreviewModalContent");
 const adminToastContainer = document.getElementById("adminToastContainer");
 
 // ==============================================================================
-// 1. Initialization
+// 1. Initialization & Authentication Gate
 // ==============================================================================
 document.addEventListener("DOMContentLoaded", async () => {
+  checkAdminAuth();
   updateConnectionStatusUI();
   await loadCategories();
   await refreshProductsTable();
+  await refreshOrdersTable();
   setupEventListeners();
   loadSqlSchemaPreview();
 });
 
+function checkAdminAuth() {
+  const isAuth = sessionStorage.getItem("wadfan_admin_auth");
+  if (isAuth === "true") {
+    if (adminAuthOverlay) adminAuthOverlay.style.display = "none";
+    if (adminMainWrapper) adminMainWrapper.style.display = "block";
+  } else {
+    if (adminAuthOverlay) adminAuthOverlay.style.display = "flex";
+    if (adminMainWrapper) adminMainWrapper.style.display = "none";
+  }
+}
+
+window.handleAdminLogin = function () {
+  const passcode = adminPasscode ? adminPasscode.value.trim() : "";
+  // รหัสผ่านเริ่มต้นคือ wadfan1234
+  if (passcode === "wadfan1234") {
+    sessionStorage.setItem("wadfan_admin_auth", "true");
+    adminAuthOverlay.style.display = "none";
+    adminMainWrapper.style.display = "block";
+    showAdminToast("เข้าสู่ระบบผู้ดูแลเรียบร้อยแล้ว", "success");
+  } else {
+    showAdminToast("รหัสผ่านไม่ถูกต้อง (รหัสเริ่มต้นคือ wadfan1234)", "error");
+  }
+};
+
+window.handleAdminLogout = function () {
+  sessionStorage.removeItem("wadfan_admin_auth");
+  adminAuthOverlay.style.display = "flex";
+  adminMainWrapper.style.display = "none";
+  if (adminPasscode) adminPasscode.value = "";
+  showAdminToast("ออกจากระบบเรียบร้อยแล้ว", "info");
+};
+
 // ==============================================================================
-// 2. Data Loading & Stats
+// 2. Navigation Tabs (Products / Categories / Orders)
+// ==============================================================================
+window.switchAdminTab = function (tabName) {
+  currentAdminTab = tabName;
+
+  document.querySelectorAll(".admin-tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tabName);
+  });
+
+  document.getElementById("tabContentProducts").style.display = tabName === "products" ? "block" : "none";
+  document.getElementById("tabContentCategories").style.display = tabName === "categories" ? "block" : "none";
+  document.getElementById("tabContentOrders").style.display = tabName === "orders" ? "block" : "none";
+
+  if (tabName === "products") refreshProductsTable();
+  else if (tabName === "categories") renderCategoriesTable();
+  else if (tabName === "orders") refreshOrdersTable();
+};
+
+function updateConnectionStatusUI() {
+  const isConnected = window.wadfanData.isSupabaseConnected;
+  if (isConnected) {
+    dbStatusDot.className = "status-indicator-dot connected";
+    dbStatusText.textContent = "เชื่อมต่อ Supabase แล้ว";
+  } else {
+    dbStatusDot.className = "status-indicator-dot local";
+    dbStatusText.textContent = "โหมดฐานข้อมูลจำลอง (Local DB)";
+  }
+}
+
+// ==============================================================================
+// 3. TAB 1: Products Logic (With Google Drive download_url)
 // ==============================================================================
 async function loadCategories() {
   try {
     allCategories = await window.wadfanData.getCategories();
 
-    if (
-      window.wadfanData.isSupabaseConnected &&
-      allCategories.length === 0
-    ) {
-      console.warn(
-        "ไม่พบ Category ใน Supabase Database"
-      );
+    if (window.wadfanData.isSupabaseConnected && allCategories.length === 0) {
+      console.warn("ไม่พบ Category ใน Supabase, กำลังเพิ่มหมวดหมู่เริ่มต้น...");
+      if (typeof window.wadfanData.seedCategoriesToSupabase === "function") {
+        await window.wadfanData.seedCategoriesToSupabase();
+        allCategories = await window.wadfanData.getCategories();
+      }
     }
-
   } catch (err) {
     allCategories = [];
-
-    console.error(
-      "Load Categories Error:",
-      err
-    );
-
-    showAdminToast(
-      `โหลดหมวดหมู่ไม่สำเร็จ: ${err.message}`,
-      "error"
-    );
+    console.error("Load Categories Error:", err);
   }
 }
 
@@ -135,26 +221,12 @@ function updateStats() {
   if (statTotalVariants) statTotalVariants.textContent = totalVariants;
 }
 
-function updateConnectionStatusUI() {
-  const isConnected = window.wadfanData.isSupabaseConnected;
-  if (isConnected) {
-    dbStatusDot.className = "status-indicator-dot connected";
-    dbStatusText.textContent = "เชื่อมต่อ Supabase แล้ว";
-  } else {
-    dbStatusDot.className = "status-indicator-dot local";
-    dbStatusText.textContent = "โหมดฐานข้อมูลจำลอง (Local DB)";
-  }
-}
-
-// ==============================================================================
-// 3. Render Table
-// ==============================================================================
 function renderProductsTable() {
   if (!adminProductsTableBody) return;
 
   const filtered = allProducts.filter((p) => {
-    const matchesType = currentAdminType === "all" || p.product_type === currentAdminType;
-    const q = adminSearchQuery.toLowerCase().trim();
+    const matchesType = currentProductTypeFilter === "all" || p.product_type === currentProductTypeFilter;
+    const q = productSearchQuery.toLowerCase().trim();
     const matchesSearch =
       q === "" ||
       p.title.toLowerCase().includes(q) ||
@@ -167,7 +239,7 @@ function renderProductsTable() {
   if (filtered.length === 0) {
     adminProductsTableBody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center; padding: 48px 20px; color: #64748b;">
+        <td colspan="8" style="text-align: center; padding: 48px 20px; color: #64748b;">
           <i class="fa-solid fa-box-open" style="font-size: 2.2rem; color: #cbd5e1; margin-bottom: 8px; display: block;"></i>
           <strong>ไม่พบข้อมูลสินค้า</strong>
           <p style="font-size: 0.85rem; margin-top: 4px;">ลองเปลี่ยนตัวกรอง หรือกดปุ่ม "เพิ่มสินค้าใหม่" ด้านบน</p>
@@ -185,11 +257,12 @@ function renderProductsTable() {
       const typeIcon = isImage ? "fa-palette" : "fa-book-open";
 
       const variantsHtml = (item.variants || [])
-        .map(
-          (v) =>
-            `<span class="variant-chip">${v.name}: <strong>฿${v.price}</strong></span>`
-        )
+        .map((v) => `<span class="variant-chip">${v.name}: <strong>฿${v.price}</strong></span>`)
         .join("");
+
+      const driveBadge = item.download_url
+        ? `<a href="${item.download_url}" target="_blank" class="drive-badge-link" title="${item.download_url}"><i class="fa-brands fa-google-drive"></i> เปิด Drive</a>`
+        : `<span style="font-size: 0.78rem; color: #94A3B8;">-</span>`;
 
       return `
       <tr>
@@ -215,6 +288,7 @@ function renderProductsTable() {
             ${variantsHtml || '<span style="font-size: 0.8rem; color: #94a3b8;">ยังไม่มีขนาด</span>'}
           </div>
         </td>
+        <td>${driveBadge}</td>
         <td>
           <span class="status-badge ${item.status === 'active' ? 'status-active' : 'status-draft'}">
             ${item.status === 'active' ? 'เผยแพร่' : 'ฉบับร่าง'}
@@ -236,84 +310,59 @@ function renderProductsTable() {
     .join("");
 }
 
-// ==============================================================================
-// 4. Modal & Form Handling
-// ==============================================================================
-function setupEventListeners() {
-  // Toolbar Filter Pills
-  if (adminFilterPills) {
-    adminFilterPills.addEventListener("click", (e) => {
-      const pill = e.target.closest(".admin-pill");
-      if (!pill) return;
-      document.querySelectorAll(".admin-pill").forEach((p) => p.classList.remove("active"));
-      pill.classList.add("active");
-      currentAdminType = pill.dataset.type;
-      renderProductsTable();
-    });
-  }
+function openProductModal(product = null) {
+  editingProductId = product ? product.id : null;
+  formProductId.value = editingProductId || "";
 
-  // Search input
-  if (adminSearchInput) {
-    adminSearchInput.addEventListener("input", (e) => {
-      adminSearchQuery = e.target.value;
-      renderProductsTable();
-    });
-  }
+  if (product) {
+    modalProductTitle.textContent = "แก้ไขสินค้า";
+    formTitle.value = product.title || "";
+    formCoverUrl.value = product.cover_image_url || "";
+    formDownloadUrl.value = product.download_url || "";
+    formTag.value = product.tag || "มาใหม่";
+    formStatus.value = product.status || "active";
+    formShortDesc.value = product.short_desc || "";
+    formFullDesc.value = product.full_desc || "";
 
-  // Open Add Product Modal
-  if (addNewProductBtn) {
-    addNewProductBtn.addEventListener("click", () => {
-      openProductModal();
-    });
-  }
+    const currentType = product.product_type || "image";
+    switchProductTypeForm(currentType);
+    populateCategoryDropdown(currentType, product.category_id);
 
-  if (closeProductModalBtn) closeProductModalBtn.addEventListener("click", closeProductModal);
-  if (cancelModalBtn) cancelModalBtn.addEventListener("click", closeProductModal);
+    const meta = product.metadata || {};
+    if (currentType === "image") {
+      formOrientation.value = meta.orientation || "portrait";
+      formResolution.value = meta.resolution || "";
+      formPalette.value = Array.isArray(meta.color_palette) ? meta.color_palette.join(", ") : "";
+    } else {
+      formGradeLevel.value = meta.grade_level || "";
+      formTotalPages.value = meta.total_pages || "";
+      formHasAnswerKey.value = meta.has_answer_key ? "true" : "false";
+    }
 
-  // Radio Product Type Switch
-  typeRadios.forEach((radio) => {
-    radio.addEventListener("change", (e) => {
-      switchProductTypeForm(e.target.value);
-    });
-  });
-
-  // Dynamic Variant Rows
-  if (addVariantRowBtn) {
-    addVariantRowBtn.addEventListener("click", () => {
+    variantsContainer.innerHTML = "";
+    if (product.variants && product.variants.length > 0) {
+      product.variants.forEach((v) => appendVariantRow(v));
+    } else {
       appendVariantRow();
-    });
+    }
+  } else {
+    modalProductTitle.textContent = "เพิ่มสินค้าใหม่";
+    productForm.reset();
+    formProductId.value = "";
+    formDownloadUrl.value = "";
+    switchProductTypeForm("image");
+    variantsContainer.innerHTML = "";
+    applyDefaultPresets("image");
   }
 
-  // Preset Generator
-  if (applyPresetBtn) {
-    applyPresetBtn.addEventListener("click", () => {
-      const selectedType = document.querySelector('input[name="product_type"]:checked').value;
-      applyDefaultPresets(selectedType);
-    });
-  }
+  productModal.classList.add("open");
+}
 
-  // Form Submit
-  if (productForm) {
-    productForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await handleSaveProduct();
-    });
-  }
-
-  // Supabase Modal
-  if (supabaseSettingsBtn) supabaseSettingsBtn.addEventListener("click", openSupabaseModal);
-  if (closeSupabaseModalBtn) closeSupabaseModalBtn.addEventListener("click", closeSupabaseModal);
-  if (testConnectionBtn) testConnectionBtn.addEventListener("click", handleTestConnection);
-  if (saveSupabaseConfigBtn) saveSupabaseConfigBtn.addEventListener("click", handleSaveSupabaseConfig);
-
-  // SQL Schema Modal
-  if (openSqlModalBtn) openSqlModalBtn.addEventListener("click", openSqlModal);
-  if (closeSqlModalBtn) closeSqlModalBtn.addEventListener("click", closeSqlModal);
-  if (copySqlBtn) copySqlBtn.addEventListener("click", handleCopySql);
+function closeProductModal() {
+  productModal.classList.remove("open");
 }
 
 function switchProductTypeForm(type) {
-  // Update Type Radio Cards active visual state
   document.querySelectorAll(".type-radio-card").forEach((card) => {
     const radio = card.querySelector('input[type="radio"]');
     if (radio && radio.value === type) {
@@ -324,10 +373,8 @@ function switchProductTypeForm(type) {
     }
   });
 
-  // Populate Categories matching product type
   populateCategoryDropdown(type);
 
-  // Toggle Type-specific inputs
   if (type === "image") {
     imageFieldsBox.style.display = "block";
     worksheetFieldsBox.style.display = "none";
@@ -342,77 +389,15 @@ function populateCategoryDropdown(type, selectedCatId = null) {
   const filteredCats = allCategories.filter((c) => c.product_type === type);
 
   if (filteredCats.length === 0) {
-    formCategory.innerHTML = `<option value="">ไม่มีหมวดหมู่</option>`;
+    formCategory.innerHTML = `<option value="">ไม่มีหมวดหมู่ (กรุณาเพิ่มในแท็บจัดการหมวดหมู่)</option>`;
     return;
   }
 
   formCategory.innerHTML = filteredCats
-    .map(
-      (c) => `
-    <option value="${c.id}" ${selectedCatId === c.id ? "selected" : ""}>
-      ${c.name}
-    </option>
-  `
-    )
+    .map((c) => `<option value="${c.id}" ${selectedCatId === c.id ? "selected" : ""}>${c.name}</option>`)
     .join("");
 }
 
-function openProductModal(product = null) {
-  editingProductId = product ? product.id : null;
-  formProductId.value = editingProductId || "";
-
-  if (product) {
-    modalProductTitle.textContent = "แก้ไขสินค้า";
-    formTitle.value = product.title || "";
-    formCoverUrl.value = product.cover_image_url || "";
-    formTag.value = product.tag || "มาใหม่";
-    formStatus.value = product.status || "active";
-    formShortDesc.value = product.short_desc || "";
-    formFullDesc.value = product.full_desc || "";
-
-    // Set Product Type
-    const currentType = product.product_type || "image";
-    switchProductTypeForm(currentType);
-    populateCategoryDropdown(currentType, product.category_id);
-
-    // Metadata
-    const meta = product.metadata || {};
-    if (currentType === "image") {
-      formOrientation.value = meta.orientation || "portrait";
-      formResolution.value = meta.resolution || "";
-      formPalette.value = Array.isArray(meta.color_palette) ? meta.color_palette.join(", ") : "";
-    } else {
-      formGradeLevel.value = meta.grade_level || "";
-      formTotalPages.value = meta.total_pages || "";
-      formHasAnswerKey.value = meta.has_answer_key ? "true" : "false";
-    }
-
-    // Populate variants
-    variantsContainer.innerHTML = "";
-    if (product.variants && product.variants.length > 0) {
-      product.variants.forEach((v) => appendVariantRow(v));
-    } else {
-      appendVariantRow();
-    }
-  } else {
-    modalProductTitle.textContent = "เพิ่มสินค้าใหม่";
-    productForm.reset();
-    formProductId.value = "";
-    switchProductTypeForm("image");
-    variantsContainer.innerHTML = "";
-    applyDefaultPresets("image");
-  }
-
-  productModal.classList.add("open");
-}
-
-function closeProductModal() {
-  productModal.classList.remove("open");
-}
-
-// ==============================================================================
-// 5. Dynamic Variant Rows Management
-// ==============================================================================
 function appendVariantRow(variant = null) {
   const row = document.createElement("div");
   row.className = "variant-row";
@@ -441,63 +426,32 @@ function appendVariantRow(variant = null) {
 function applyDefaultPresets(type) {
   variantsContainer.innerHTML = "";
   if (type === "image") {
-    appendVariantRow({
-      name: "ขนาด S (Web / Social)",
-      dimension_or_detail: "1080 x 1440 px (72 DPI)",
-      file_format: "JPG/PNG",
-      price: 39
-    });
-    appendVariantRow({
-      name: "ขนาด M (High-Res Print)",
-      dimension_or_detail: "3000 x 4000 px (300 DPI)",
-      file_format: "PNG",
-      price: 79
-    });
-    appendVariantRow({
-      name: "ขนาด L + สิทธิ์เชิงพาณิชย์",
-      dimension_or_detail: "4500 x 6000 px + License",
-      file_format: "Original PNG + PDF",
-      price: 189
-    });
+    appendVariantRow({ name: "ขนาด S (Web / Social)", dimension_or_detail: "1080 x 1440 px (72 DPI)", file_format: "JPG/PNG", price: 39 });
+    appendVariantRow({ name: "ขนาด M (High-Res Print)", dimension_or_detail: "3000 x 4000 px (300 DPI)", file_format: "PNG", price: 79 });
+    appendVariantRow({ name: "พิมพ์ใส่กรอบรูป A4 จัดส่งพัสดุ", dimension_or_detail: "กรอบไม้สีขาว จัดส่ง EMS ถึงบ้าน", file_format: "Physical Frame", price: 299 });
   } else {
-    appendVariantRow({
-      name: "ชุดมาตรฐาน (Standard PDF)",
-      dimension_or_detail: "ขนาด A4 พร้อมแบบฝึกหัด",
-      file_format: "PDF 300 DPI",
-      price: 69
-    });
-    appendVariantRow({
-      name: "ชุดพรีเมียม (PDF + เฉลยละเอียด)",
-      dimension_or_detail: "รวมแบบฝึกหัด + เฉลยและคู่มือ",
-      file_format: "PDF Pack",
-      price: 89
-    });
+    appendVariantRow({ name: "ชุดมาตรฐาน (Standard PDF)", dimension_or_detail: "ขนาด A4 พร้อมแบบฝึกหัด", file_format: "PDF 300 DPI", price: 69 });
+    appendVariantRow({ name: "ชุดพรีเมียม (PDF + เฉลยละเอียด)", dimension_or_detail: "รวมแบบฝึกหัด + เฉลยและคู่มือ", file_format: "PDF Pack", price: 89 });
   }
 }
 
-// ==============================================================================
-// 6. Save & Delete Actions
-// ==============================================================================
 async function handleSaveProduct() {
   const selectedType = document.querySelector('input[name="product_type"]:checked').value;
   const title = formTitle.value.trim();
   const categoryId = formCategory.value;
   const coverUrl = formCoverUrl.value.trim();
+  const downloadUrl = formDownloadUrl.value.trim();
   const tag = formTag.value;
   const status = formStatus.value;
   const shortDesc = formShortDesc.value.trim();
   const fullDesc = formFullDesc.value.trim();
 
-  // Harvest Metadata
   let metadata = {};
   if (selectedType === "image") {
     metadata = {
       orientation: formOrientation.value,
       resolution: formResolution.value.trim(),
-      color_palette: formPalette.value
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean)
+      color_palette: formPalette.value.split(",").map((c) => c.trim()).filter(Boolean)
     };
   } else {
     metadata = {
@@ -507,7 +461,6 @@ async function handleSaveProduct() {
     };
   }
 
-  // Harvest Variants
   const variantRows = variantsContainer.querySelectorAll(".variant-row");
   const variants = [];
   variantRows.forEach((row, idx) => {
@@ -522,6 +475,7 @@ async function handleSaveProduct() {
         dimension_or_detail: vDetail,
         file_format: vFormat,
         price: vPrice,
+        download_file_url: downloadUrl,
         is_default: idx === 0
       });
     }
@@ -539,6 +493,7 @@ async function handleSaveProduct() {
     short_desc: shortDesc,
     full_desc: fullDesc,
     cover_image_url: coverUrl,
+    download_url: downloadUrl,
     base_price: basePrice,
     tag,
     status,
@@ -558,18 +513,13 @@ async function handleSaveProduct() {
 
 window.editProduct = function (productId) {
   const prod = allProducts.find((p) => p.id === productId);
-  if (prod) {
-    openProductModal(prod);
-  }
+  if (prod) openProductModal(prod);
 };
 
 window.deleteProduct = async function (productId) {
   const prod = allProducts.find((p) => p.id === productId);
   const name = prod ? prod.title : "สินค้านี้";
-
-  if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${name}"?`)) {
-    return;
-  }
+  if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${name}"?`)) return;
 
   const res = await window.wadfanData.deleteProduct(productId);
   if (res.success) {
@@ -581,18 +531,570 @@ window.deleteProduct = async function (productId) {
 };
 
 // ==============================================================================
-// 7. Supabase Configuration Modal Handling
+// 4. TAB 2: Categories Logic (เพิ่ม/แก้ไข/ลบหมวดหมู่ได้เอง)
 // ==============================================================================
+function renderCategoriesTable() {
+  if (!adminCategoriesTableBody) return;
+
+  if (allCategories.length === 0) {
+    adminCategoriesTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 48px; color: #94A3B8;">
+          <i class="fa-solid fa-tags" style="font-size: 2rem; margin-bottom: 8px; display: block;"></i>
+          ยังไม่มีหมวดหมู่สินค้า กดปุ่ม "+ เพิ่มหมวดหมู่ใหม่" ด้านบนเพื่อเริ่มต้น
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  adminCategoriesTableBody.innerHTML = allCategories
+    .map(
+      (cat, idx) => `
+    <tr>
+      <td><span style="font-weight: 600; color: #94A3B8;">#${cat.sort_order || idx + 1}</span></td>
+      <td><strong style="color: #334155; font-size: 0.95rem;">${cat.name}</strong></td>
+      <td><code style="background: #F1F5F9; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${cat.slug}</code></td>
+      <td>
+        <span class="type-badge ${cat.product_type === 'image' ? 'type-badge-image' : 'type-badge-worksheet'}">
+          <i class="fa-solid ${cat.product_type === 'image' ? 'fa-palette' : 'fa-book-open'}"></i>
+          ${cat.product_type === 'image' ? 'รูปภาพดิจิทัล' : 'ใบงานการเรียนรู้'}
+        </span>
+      </td>
+      <td>
+        <div class="table-actions">
+          <button class="action-icon-btn" onclick="window.editCategory('${cat.id}')" title="แก้ไขหมวดหมู่">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="action-icon-btn delete-btn" onclick="window.deleteCategory('${cat.id}')" title="ลบหมวดหมู่">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `
+    )
+    .join("");
+}
+
+window.autoGenerateCategorySlug = function (text) {
+  if (editingCategoryId) return;
+  // สร้าง slug ภาษาอังกฤษแบบง่าย หรือทับศัพท์
+  const clean = text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (clean && categorySlugInput) categorySlugInput.value = clean;
+};
+
+function openCategoryModal(cat = null) {
+  editingCategoryId = cat ? cat.id : null;
+  formCategoryId.value = editingCategoryId || "";
+
+  if (cat) {
+    modalCategoryTitle.textContent = "แก้ไขหมวดหมู่";
+    categoryNameInput.value = cat.name;
+    categorySlugInput.value = cat.slug;
+    categoryProductTypeInput.value = cat.product_type;
+    categorySortOrderInput.value = cat.sort_order || 1;
+  } else {
+    modalCategoryTitle.textContent = "เพิ่มหมวดหมู่ใหม่";
+    document.getElementById("categoryForm").reset();
+    formCategoryId.value = "";
+    categorySortOrderInput.value = allCategories.length + 1;
+  }
+
+  categoryModal.classList.add("open");
+}
+
+window.editCategory = function (catId) {
+  const cat = allCategories.find((c) => c.id === catId);
+  if (cat) openCategoryModal(cat);
+};
+
+window.handleSaveCategory = async function () {
+  const name = categoryNameInput.value.trim();
+  const slug = categorySlugInput.value.trim().toLowerCase();
+  const product_type = categoryProductTypeInput.value;
+  const sort_order = parseInt(categorySortOrderInput.value) || 0;
+
+  if (!name || !slug) {
+    showAdminToast("กรุณากรอกชื่อและ Slug ของหมวดหมู่ให้ครบถ้วน", "error");
+    return;
+  }
+
+  const payload = {
+    id: editingCategoryId || undefined,
+    name,
+    slug,
+    product_type,
+    sort_order
+  };
+
+  const res = await window.wadfanData.saveCategory(payload);
+  if (res.success) {
+    showAdminToast("บันทึกหมวดหมู่เรียบร้อยแล้ว", "success");
+    categoryModal.classList.remove("open");
+    await loadCategories();
+    renderCategoriesTable();
+  } else {
+    showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
+  }
+};
+
+window.deleteCategory = async function (catId) {
+  const cat = allCategories.find((c) => c.id === catId);
+  if (!cat) return;
+  if (!confirm(`คุณต้องการลบหมวดหมู่ "${cat.name}" หรือไม่?`)) return;
+
+  const res = await window.wadfanData.deleteCategory(catId);
+  if (res.success) {
+    showAdminToast(`ลบหมวดหมู่ "${cat.name}" สำเร็จ`, "info");
+    await loadCategories();
+    renderCategoriesTable();
+  } else {
+    showAdminToast(`ไม่สามารถลบได้: ${res.message}`, "error");
+  }
+};
+
+// ==============================================================================
+// 5. TAB 3: Orders Logic (ยืนยันชำระ, ส่ง Drive Link, ใส่ Tracking)
+// ==============================================================================
+async function refreshOrdersTable() {
+  allOrders = await window.wadfanData.getOrders();
+
+  // Pending count badge
+  const pendingCount = allOrders.filter((o) => o.payment_status === "pending").length;
+  if (pendingOrdersCountBadge) {
+    if (pendingCount > 0) {
+      pendingOrdersCountBadge.style.display = "inline-block";
+      pendingOrdersCountBadge.textContent = pendingCount;
+    } else {
+      pendingOrdersCountBadge.style.display = "none";
+    }
+  }
+
+  renderOrdersTable();
+}
+
+function renderOrdersTable() {
+  if (!adminOrdersTableBody) return;
+
+  const filtered = allOrders.filter((o) => {
+    const matchesStatus = currentOrderStatusFilter === "all" || o.payment_status === currentOrderStatusFilter;
+    const q = orderSearchQuery.toLowerCase().trim();
+    const matchesSearch =
+      q === "" ||
+      o.order_number.toLowerCase().includes(q) ||
+      o.customer_name.toLowerCase().includes(q) ||
+      o.customer_email.toLowerCase().includes(q);
+
+    return matchesStatus && matchesSearch;
+  });
+
+  if (filtered.length === 0) {
+    adminOrdersTableBody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 48px; color: #94A3B8;">
+          <i class="fa-solid fa-receipt" style="font-size: 2rem; margin-bottom: 8px; display: block;"></i>
+          ยังไม่มีรายการคำสั่งซื้อในสถานะนี้
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  adminOrdersTableBody.innerHTML = filtered
+    .map((o) => {
+      let statusBadge = "";
+      if (o.payment_status === "paid") {
+        statusBadge = `<span class="status-badge status-paid"><i class="fa-solid fa-circle-check"></i> ชำระแล้ว / ส่งไฟล์แล้ว</span>`;
+      } else if (o.payment_status === "shipped") {
+        statusBadge = `<span class="status-badge status-shipped"><i class="fa-solid fa-truck"></i> จัดส่งแล้ว (${o.tracking_carrier || 'พัสดุ'})</span>`;
+      } else {
+        statusBadge = `<span class="status-badge status-pending"><i class="fa-solid fa-clock"></i> รอตรวจสอบชำระเงิน</span>`;
+      }
+
+      // Customer files indicator
+      const filesCount = o.customer_uploaded_files ? o.customer_uploaded_files.length : 0;
+      const filesBadge =
+        filesCount > 0
+          ? `<span class="file-chip-drive" title="บันทึกใน Drive: /Wadfan_Orders/${o.order_number}/"><i class="fa-brands fa-google-drive"></i> ${filesCount} ไฟล์ใน Drive</span>`
+          : `<span style="font-size: 0.8rem; color: #94A3B8;">ไม่มีไฟล์แนบ</span>`;
+
+      const itemsSummary = (o.items || [])
+        .map((i) => `<div style="font-size: 0.85rem; color: #334155;">• ${i.product_title} (${i.variant_name})</div>`)
+        .join("");
+
+      return `
+      <tr>
+        <td><strong style="color: #FF758F; font-size: 0.95rem;">${o.order_number}</strong><br><small style="color: #94A3B8;">${new Date(o.created_at).toLocaleString('th-TH')}</small></td>
+        <td>
+          <div style="font-weight: 600; color: #334155;">${o.customer_name}</div>
+          <small style="color: #64748B;"><i class="fa-regular fa-envelope"></i> ${o.customer_email}</small><br>
+          <small style="color: #64748B;"><i class="fa-solid fa-phone"></i> ${o.customer_phone || '-'}</small>
+        </td>
+        <td>
+          <span class="type-badge ${o.order_type === 'image' ? 'type-badge-image' : 'type-badge-worksheet'}">
+            ${o.order_type === 'image' ? '🎨 รูปภาพ' : o.order_type === 'worksheet' ? '📄 ใบงาน' : 'ผสม (รูป+ใบงาน)'}
+          </span>
+        </td>
+        <td><div style="max-width: 260px;">${itemsSummary || '-'}</div></td>
+        <td><strong style="color: #FF758F; font-size: 1.05rem;">฿${o.total_amount}</strong></td>
+        <td>${filesBadge}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-primary btn-sm" onclick="window.openOrderDetailModal('${o.id}')">
+              <i class="fa-solid fa-eye"></i> จัดการคำสั่งซื้อ
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+    })
+    .join("");
+}
+
+window.openOrderDetailModal = function (orderId) {
+  const order = allOrders.find((o) => o.id === orderId);
+  if (!order || !orderDetailModalBody) return;
+
+  currentViewingOrder = order;
+
+  const hasWorksheets = (order.items || []).some((i) => i.product_type === "worksheet");
+  const hasImages = (order.items || []).some((i) => i.product_type === "image");
+  const isPaid = order.payment_status === "paid" || order.payment_status === "shipped";
+  const isShipped = order.payment_status === "shipped";
+
+  // Uploaded files list
+  const filesListHtml = (order.customer_uploaded_files || [])
+    .map(
+      (f) => `
+    <div style="background: #FFF; padding: 10px 14px; border-radius: 8px; border: 1px solid #BAE6FD; margin-top: 6px; font-size: 0.85rem;">
+      <div style="font-weight: 600; color: #0284C7;"><i class="fa-solid fa-file-image"></i> ${f.file_name} (${f.file_size || ''})</div>
+      <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">📁 ที่อยู่โฟลเดอร์: <code>${f.google_drive_path}</code></div>
+    </div>
+  `
+    )
+    .join("");
+
+  // Items list
+  const itemsListHtml = (order.items || [])
+    .map(
+      (i) => `
+    <div class="order-item-card">
+      <div>
+        <strong>${i.product_title}</strong>
+        <div style="font-size: 0.8rem; color: #64748B;">ตัวเลือก: ${i.variant_name}</div>
+        ${i.download_url ? `<a href="${i.download_url}" target="_blank" style="font-size: 0.78rem; color: #0284C7;"><i class="fa-brands fa-google-drive"></i> ดูไฟล์ใบงานใน Google Drive</a>` : ''}
+      </div>
+      <div style="font-weight: 700; color: #FF758F;">฿${i.price}</div>
+    </div>
+  `
+    )
+    .join("");
+
+  orderDetailModalBody.innerHTML = `
+    <div class="order-detail-grid">
+      
+      <!-- Left Box: Order & Customer Details -->
+      <div class="order-customer-box">
+        <h3 class="order-box-title"><i class="fa-solid fa-receipt text-blue"></i> ข้อมูลคำสั่งซื้อ: ${order.order_number}</h3>
+        
+        <p style="font-size: 0.9rem; margin-bottom: 6px;"><strong>ลูกค้า:</strong> ${order.customer_name}</p>
+        <p style="font-size: 0.9rem; margin-bottom: 6px;"><strong>อีเมล:</strong> ${order.customer_email}</p>
+        <p style="font-size: 0.9rem; margin-bottom: 14px;"><strong>เบอร์โทร:</strong> ${order.customer_phone || '-'}</p>
+
+        <h4 style="font-size: 0.95rem; margin-top: 14px; color: #334155;"><i class="fa-solid fa-basket-shopping text-pink"></i> รายการสินค้าที่สั่งซื้อ:</h4>
+        <div class="order-item-list">
+          ${itemsListHtml}
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px dashed #CBD5E1; font-weight: 700; font-size: 1.15rem;">
+          <span>ยอดรวมสุทธิ</span>
+          <span style="color: #FF758F;">฿${order.total_amount}</span>
+        </div>
+
+        ${
+          order.customer_uploaded_files && order.customer_uploaded_files.length > 0
+            ? `
+          <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid #E2E8F0;">
+            <h4 style="font-size: 0.92rem; color: #0369A1;"><i class="fa-brands fa-google-drive"></i> รูปภาพที่ลูกค้าแนบมา (บันทึกลง Google Drive แล้ว):</h4>
+            ${filesListHtml}
+          </div>
+        `
+            : ''
+        }
+      </div>
+
+      <!-- Right Box: Actions (Confirm Payment / Drive Email Delivery / Shipping Tracking) -->
+      <div class="order-action-box">
+        <h3 class="order-box-title"><i class="fa-solid fa-sliders text-pink"></i> ดำเนินการคำสั่งซื้อ</h3>
+
+        <!-- Status 1: Confirmation & Google Drive Delivery -->
+        <div style="background: #FFF; padding: 16px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 16px;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 6px;">
+            <i class="fa-solid fa-circle-check text-green"></i> 1. ตรวจสอบ & ยืนยันการชำระเงิน
+          </h4>
+          <p style="font-size: 0.82rem; color: #64748B; margin-bottom: 12px;">
+            เมื่อกดยืนยัน ระบบจะปรับสถานะเป็น "ชำระเงินแล้ว" และส่งอีเมลแนบลิงก์ Google Drive ให้ลูกค้าทันที
+          </p>
+
+          ${
+            isPaid
+              ? `<div style="background: #D1FAE5; color: #065F46; padding: 10px; border-radius: 8px; font-size: 0.88rem; font-weight: 600;"><i class="fa-solid fa-check"></i> ได้รับการยืนยันชำระเงินแล้ว</div>`
+              : `<button class="btn-primary full-width" onclick="window.confirmPaymentAction('${order.id}')">
+                   <i class="fa-solid fa-envelope-circle-check"></i> ยืนยันชำระเงิน & ส่งลิงก์ Drive ทันที
+                 </button>`
+          }
+        </div>
+
+        <!-- Status 2: Image Shipping Tracking -->
+        ${
+          hasImages
+            ? `
+          <div class="tracking-input-group">
+            <h4 style="font-size: 0.95rem; color: #1E293B;">
+              <i class="fa-solid fa-truck-fast text-blue"></i> 2. บันทึกเลขพัสดุ (สำหรับส่งรูปภาพ)
+            </h4>
+            <p style="font-size: 0.82rem; color: #64748B;">
+              ใส่ข้อมูลขนส่งเพื่อส่งอีเมลแจ้งเลข Tracking ให้ลูกค้านำไปตรวจสอบ
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">บริษัทขนส่ง</label>
+              <select id="modalTrackingCarrier">
+                <option value="Kerry Express" ${order.tracking_carrier === 'Kerry Express' ? 'selected' : ''}>Kerry Express</option>
+                <option value="Flash Express" ${order.tracking_carrier === 'Flash Express' ? 'selected' : ''}>Flash Express</option>
+                <option value="ไปรษณีย์ไทย (EMS)" ${order.tracking_carrier === 'ไปรษณีย์ไทย (EMS)' ? 'selected' : ''}>ไปรษณีย์ไทย (EMS)</option>
+                <option value="J&T Express" ${order.tracking_carrier === 'J&T Express' ? 'selected' : ''}>J&T Express</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">หมายเลขพัสดุ (Tracking Number)</label>
+              <input type="text" id="modalTrackingNumber" value="${order.tracking_number || ''}" placeholder="เช่น TH0123456789A">
+            </div>
+
+            <button class="btn-secondary full-width" onclick="window.saveTrackingAction('${order.id}')">
+              <i class="fa-solid fa-paper-plane"></i> บันทึก & ส่งอีเมลแจ้งเลขพัสดุ
+            </button>
+          </div>
+        `
+            : ''
+        }
+
+        <!-- Email Notification History Button -->
+        <button class="btn-secondary full-width" style="margin-top: 14px;" onclick="window.showEmailHistoryModal('${order.id}')">
+          <i class="fa-solid fa-clock-rotate-left"></i> ดูประวัติอีเมลที่ระบบส่งอัตโนมัติ (${(order.email_notification_log || []).length} ฉบับ)
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+  orderDetailModal.classList.add("open");
+};
+
+window.confirmPaymentAction = async function (orderId) {
+  const res = await window.wadfanData.confirmOrderPayment(orderId);
+  if (res.success) {
+    showAdminToast("ยืนยันชำระเงินและส่งอีเมลลิงก์ Google Drive สำเร็จแล้ว!", "success");
+    await refreshOrdersTable();
+    window.openOrderDetailModal(orderId);
+
+    // Show Email Preview
+    if (res.emailSent) {
+      window.previewSentEmail(res.emailSent);
+    }
+  } else {
+    showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
+  }
+};
+
+window.saveTrackingAction = async function (orderId) {
+  const carrier = document.getElementById("modalTrackingCarrier").value;
+  const trackingNumber = document.getElementById("modalTrackingNumber").value.trim();
+
+  if (!trackingNumber) {
+    showAdminToast("กรุณากรอกเลขพัสดุ", "error");
+    return;
+  }
+
+  const res = await window.wadfanData.updateOrderTracking(orderId, carrier, trackingNumber);
+  if (res.success) {
+    showAdminToast("บันทึกเลขพัสดุและส่งอีเมลแจ้งลูกค้าเรียบร้อยแล้ว!", "success");
+    await refreshOrdersTable();
+    window.openOrderDetailModal(orderId);
+
+    if (res.emailSent) {
+      window.previewSentEmail(res.emailSent);
+    }
+  } else {
+    showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
+  }
+};
+
+window.previewSentEmail = function (emailData) {
+  if (!emailPreviewModalContent || !emailPreviewModal) return;
+
+  const linksHtml = (emailData.download_links || [])
+    .map(
+      (l) => `
+    <div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 12px; border-radius: 8px; margin: 8px 0;">
+      <strong>📄 ${l.title}</strong>
+      <div style="margin-top: 4px;">
+        <a href="${l.url}" target="_blank" style="color: #0284C7; font-weight: 600;"><i class="fa-brands fa-google-drive"></i> เปิดดาวน์โหลดไฟล์จาก Google Drive</a>
+      </div>
+    </div>
+  `
+    )
+    .join("");
+
+  emailPreviewModalContent.innerHTML = `
+    <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.88rem;">
+      <p><strong>ผู้รับ:</strong> ${emailData.recipient || 'ลูกค้า'}</p>
+      <p><strong>หัวข้อ:</strong> ${emailData.subject}</p>
+      <p><strong>เวลาที่ส่ง:</strong> ${new Date(emailData.sent_at).toLocaleString('th-TH')}</p>
+    </div>
+
+    <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; background: #FFF; font-size: 0.92rem; line-height: 1.6;">
+      <p style="white-space: pre-line; margin-bottom: 16px;">${emailData.message || ''}</p>
+
+      ${
+        emailData.download_links && emailData.download_links.length > 0
+          ? `
+        <div style="margin-top: 14px;">
+          <h4 style="color: #0369A1; margin-bottom: 6px;"><i class="fa-brands fa-google-drive"></i> ลิงก์ดาวน์โหลดใบงานของคุณ:</h4>
+          ${linksHtml}
+        </div>
+      `
+          : ''
+      }
+
+      ${
+        emailData.tracking_number
+          ? `
+        <div style="background: #EBF5FB; border: 1px solid #7BC5DC; padding: 14px; border-radius: 8px; margin-top: 14px;">
+          <h4 style="color: #0369A1;"><i class="fa-solid fa-truck"></i> ข้อมูลการจัดส่ง:</h4>
+          <p>ขนส่ง: <strong>${emailData.carrier}</strong></p>
+          <p>หมายเลขพัสดุ: <strong style="font-size: 1.1rem; color: #FF758F;">${emailData.tracking_number}</strong></p>
+        </div>
+      `
+          : ''
+      }
+    </div>
+  `;
+
+  emailPreviewModal.classList.add("open");
+};
+
+window.showEmailHistoryModal = function (orderId) {
+  const order = allOrders.find((o) => o.id === orderId);
+  if (!order) return;
+
+  const logs = order.email_notification_log || [];
+  if (logs.length === 0) {
+    showAdminToast("ยังไม่มีประวัติการส่งอีเมลสำหรับคำสั่งซื้อนี้", "info");
+    return;
+  }
+
+  // Preview latest email
+  window.previewSentEmail(logs[0]);
+};
+
+// ==============================================================================
+// 6. Supabase Settings & SQL Modals
+// ==============================================================================
+function setupEventListeners() {
+  // Product Filter
+  if (adminFilterPills) {
+    adminFilterPills.addEventListener("click", (e) => {
+      const pill = e.target.closest(".admin-pill");
+      if (!pill) return;
+      document.querySelectorAll(".admin-pill").forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      currentProductTypeFilter = pill.dataset.type;
+      renderProductsTable();
+    });
+  }
+
+  if (adminSearchInput) {
+    adminSearchInput.addEventListener("input", (e) => {
+      productSearchQuery = e.target.value;
+      renderProductsTable();
+    });
+  }
+
+  // Order Filter
+  if (adminOrderFilterPills) {
+    adminOrderFilterPills.addEventListener("click", (e) => {
+      const pill = e.target.closest(".admin-pill");
+      if (!pill) return;
+      document.querySelectorAll("#adminOrderFilterPills .admin-pill").forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      currentOrderStatusFilter = pill.dataset.status;
+      renderOrdersTable();
+    });
+  }
+
+  if (adminOrderSearchInput) {
+    adminOrderSearchInput.addEventListener("input", (e) => {
+      orderSearchQuery = e.target.value;
+      renderOrdersTable();
+    });
+  }
+
+  // Add Product Triggers
+  if (addNewProductBtn) addNewProductBtn.addEventListener("click", () => openProductModal());
+  if (closeProductModalBtn) closeProductModalBtn.addEventListener("click", closeProductModal);
+  if (cancelModalBtn) cancelModalBtn.addEventListener("click", closeProductModal);
+
+  // Type Radios
+  typeRadios.forEach((radio) => {
+    radio.addEventListener("change", (e) => switchProductTypeForm(e.target.value));
+  });
+
+  // Variant Rows
+  if (addVariantRowBtn) addVariantRowBtn.addEventListener("click", () => appendVariantRow());
+  if (applyPresetBtn) {
+    applyPresetBtn.addEventListener("click", () => {
+      const selectedType = document.querySelector('input[name="product_type"]:checked').value;
+      applyDefaultPresets(selectedType);
+    });
+  }
+
+  if (productForm) {
+    productForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await handleSaveProduct();
+    });
+  }
+
+  // Category Triggers
+  if (addNewCategoryBtn) addNewCategoryBtn.addEventListener("click", () => openCategoryModal());
+  if (closeCategoryModalBtn) closeCategoryModalBtn.addEventListener("click", () => categoryModal.classList.remove("open"));
+
+  // Supabase Settings
+  if (supabaseSettingsBtn) supabaseSettingsBtn.addEventListener("click", openSupabaseModal);
+  if (closeSupabaseModalBtn) closeSupabaseModalBtn.addEventListener("click", () => supabaseModal.classList.remove("open"));
+  if (testConnectionBtn) testConnectionBtn.addEventListener("click", handleTestConnection);
+  if (saveSupabaseConfigBtn) saveSupabaseConfigBtn.addEventListener("click", handleSaveSupabaseConfig);
+
+  // SQL Schema
+  if (openSqlModalBtn) openSqlModalBtn.addEventListener("click", () => sqlModal.classList.add("open"));
+  if (closeSqlModalBtn) closeSqlModalBtn.addEventListener("click", () => sqlModal.classList.remove("open"));
+  if (copySqlBtn) copySqlBtn.addEventListener("click", handleCopySql);
+}
+
 function openSupabaseModal() {
   const config = window.wadfanData.getConfig();
   supabaseUrlInput.value = config.url;
   supabaseKeyInput.value = config.key;
   connectionTestResult.style.display = "none";
   supabaseModal.classList.add("open");
-}
-
-function closeSupabaseModal() {
-  supabaseModal.classList.remove("open");
 }
 
 async function handleTestConnection() {
@@ -606,7 +1108,6 @@ async function handleTestConnection() {
     return;
   }
 
-  // Temporary configure to test
   window.wadfanData.saveConfig(url, key);
   const res = await window.wadfanData.testConnection();
 
@@ -629,13 +1130,10 @@ async function handleSaveSupabaseConfig() {
   window.wadfanData.saveConfig(url, key);
   showAdminToast("บันทึกการตั้งค่า Supabase เรียบร้อยแล้ว", "success");
   updateConnectionStatusUI();
-  closeSupabaseModal();
+  supabaseModal.classList.remove("open");
   await refreshProductsTable();
 }
 
-// ==============================================================================
-// 8. SQL Schema Preview Modal
-// ==============================================================================
 async function loadSqlSchemaPreview() {
   try {
     const res = await fetch("supabase-schema.sql");
@@ -648,14 +1146,6 @@ async function loadSqlSchemaPreview() {
   }
 }
 
-function openSqlModal() {
-  sqlModal.classList.add("open");
-}
-
-function closeSqlModal() {
-  sqlModal.classList.remove("open");
-}
-
 function handleCopySql() {
   const sqlText = sqlCodeBlock.textContent;
   navigator.clipboard.writeText(sqlText).then(() => {
@@ -664,7 +1154,7 @@ function handleCopySql() {
 }
 
 // ==============================================================================
-// 9. Toast Utility
+// 7. Toast Utility
 // ==============================================================================
 function showAdminToast(message, type = "info") {
   if (!adminToastContainer) return;

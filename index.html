@@ -27,19 +27,15 @@
   <div class="bg-shape shape-blue"></div>
   <div class="bg-shape shape-yellow"></div>
 
-  <!-- Announcement Bar -->
+  <!-- Announcement Bar (For Customers Only) -->
   <aside class="top-announcement" aria-label="แถบประกาศโปรโมชั่น">
     <div class="container announcement-content">
-      <span>✨ ฉลองเปิดสตูดิโอใหม่! รวมผลงาน<strong>ภาพวาดดิจิทัล</strong> และ <strong>ใบงานการเรียนรู้</strong> น่ารักอบอุ่น</span>
-      <div class="announcement-right">
-        <a href="#products" class="announcement-link">เลือกชมสินค้าทั้งหมด <i class="fa-solid fa-arrow-right"></i></a>
-        <span class="announcement-sep">|</span>
-        <a href="admin.html" class="admin-quick-link" target="_blank"><i class="fa-solid fa-lock"></i> จัดการหลังบ้าน (Admin)</a>
-      </div>
+      <span>✨ ยินดีต้อนรับสู่ <strong>Wadfan Studio</strong> รวมผลงานภาพวาดดิจิทัลและใบงานการเรียนรู้น่ารักอบอุ่น</span>
+      <a href="#products" class="announcement-link">เลือกชมผลงานทั้งหมด <i class="fa-solid fa-arrow-right"></i></a>
     </div>
   </aside>
 
-  <!-- Navigation Bar -->
+  <!-- Navigation Bar (Clean Customer Interface) -->
   <header class="navbar-wrapper">
     <nav class="navbar container">
       <!-- Logo -->
@@ -78,11 +74,6 @@
           <span class="cart-badge" id="cartCount">0</span>
         </button>
 
-        <!-- Admin Portal Icon Button -->
-        <a href="admin.html" class="icon-btn admin-badge-btn" title="ระบบจัดการหลังบ้าน (Admin Management)">
-          <i class="fa-solid fa-gear"></i>
-        </a>
-
         <!-- Mobile Menu Toggle -->
         <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="เปิดเมนู">
           <i class="fa-solid fa-bars-staggered"></i>
@@ -91,7 +82,7 @@
     </nav>
   </header>
 
-  <!-- Mobile Drawer Menu -->
+  <!-- Mobile Drawer Menu (Customer Interface) -->
   <div class="mobile-drawer" id="mobileDrawer">
     <div class="drawer-header">
       <div class="drawer-logo">
@@ -107,7 +98,6 @@
       <li><a href="#categories" class="drawer-link"><i class="fa-solid fa-shapes"></i> หมวดหมู่สินค้า</a></li>
       <li><a href="#features" class="drawer-link"><i class="fa-solid fa-heart"></i> จุดเด่นของเรา</a></li>
       <li><a href="#faq" class="drawer-link"><i class="fa-solid fa-circle-question"></i> คำถามที่พบบ่อย</a></li>
-      <li><a href="admin.html" target="_blank" class="drawer-link text-pink"><i class="fa-solid fa-gear"></i> ระบบจัดการหลังบ้าน (Admin)</a></li>
     </ul>
     <div class="drawer-footer">
       <a href="https://line.me" target="_blank" class="btn-primary full-width">
@@ -168,10 +158,9 @@
         </div>
       </div>
 
-      <!-- Right Hero Visual / Dual Product Showcase (Artwork & Worksheet) -->
+      <!-- Right Hero Visual -->
       <div class="hero-visual">
         <div class="hero-card-stack">
-          <!-- Main Showcase Card -->
           <div class="hero-main-card">
             <div class="card-glass-header">
               <div class="window-dots">
@@ -184,12 +173,10 @@
 
             <!-- Dual Visual Box -->
             <div class="mockup-preview-dual">
-              <!-- Left side: Digital Artwork -->
               <div class="dual-box-art">
                 <img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=400&auto=format&fit=crop&q=80" alt="Sample Artwork">
                 <span class="mini-art-pill">🎨 4K & Multi-Sizes</span>
               </div>
-              <!-- Right side: Educational Worksheet -->
               <div class="dual-box-ws">
                 <div class="ws-mini-header">Wadfan Math</div>
                 <div class="ws-mini-icons">
@@ -213,29 +200,26 @@
             </div>
           </div>
 
-          <!-- Floating Badge 1 (Instant Download) -->
           <div class="floating-badge badge-top-left">
             <div class="badge-icon-box bg-pink-light">
               <i class="fa-solid fa-bolt text-pink"></i>
             </div>
             <div>
               <strong>โหลดได้ทันที 24 ชม.</strong>
-              <small>ลิงก์จัดส่งเข้า Email / LINE</small>
+              <small>ไฟล์ส่งตรงเข้า Email / LINE</small>
             </div>
           </div>
 
-          <!-- Floating Badge 2 (Supabase Connected) -->
           <div class="floating-badge badge-bottom-right">
             <div class="badge-icon-box bg-blue-light">
-              <i class="fa-solid fa-database text-blue"></i>
+              <i class="fa-solid fa-cloud text-blue"></i>
             </div>
             <div>
-              <strong>เชื่อมต่อ Supabase</strong>
-              <small>จัดการสินค้าหลังบ้านแบบ Real-time</small>
+              <strong>Google Drive Delivery</strong>
+              <small>จัดเก็บลิงก์ดาวน์โหลดปลอดภัย</small>
             </div>
           </div>
 
-          <!-- Decorative Floating Sparkles -->
           <div class="floating-sticker sticker-1">🎨</div>
           <div class="floating-sticker sticker-2">✏️</div>
           <div class="floating-sticker sticker-3">☁️</div>
@@ -244,52 +228,17 @@
     </div>
   </section>
 
-  <!-- Categories Section -->
+  <!-- Categories Section (Dynamic from Database) -->
   <section class="section-padding bg-warm-white" id="categories">
     <div class="container">
       <div class="section-header text-center">
         <span class="section-subtitle">หมวดหมู่ผลงานทั้งหมด</span>
-        <h2 class="section-title">เลือกชมผลงานตามความต้องการ</h2>
+        <h2 class="section-title">เลือกชมผลงานตามหมวดหมู่</h2>
         <p class="section-desc">ทั้งงานศิลปะภาพวาดน่ารัก วอลเปเปอร์ สติกเกอร์ และแบบฝึกหัดพัฒนาทักษะเด็ก</p>
       </div>
 
       <div class="categories-grid" id="categoriesGrid">
-        <!-- Dynamically rendered or static sample -->
-        <div class="category-card" onclick="window.filterByCategorySlug('cute-illustrations')">
-          <div class="cat-icon-wrapper bg-pink-light">
-            <span class="cat-emoji">🎨</span>
-          </div>
-          <h3>ภาพวาด & อาร์ตเวิร์ก</h3>
-          <p>ภาพประกอบน่ารัก มีให้เลือกขนาด S, M, L และสิทธิ์เชิงพาณิชย์</p>
-          <span class="cat-count">รูปภาพดิจิทัล</span>
-        </div>
-
-        <div class="category-card" onclick="window.filterByCategorySlug('wallpapers')">
-          <div class="cat-icon-wrapper bg-blue-light">
-            <span class="cat-emoji">📱</span>
-          </div>
-          <h3>วอลเปเปอร์มือถือ & iPad</h3>
-          <p>ภาพหน้าจอความคมชัด 4K ปรับสมดุลสายตา สบายใจทุกครั้งที่เปิดจอ</p>
-          <span class="cat-count">วอลเปเปอร์</span>
-        </div>
-
-        <div class="category-card" onclick="window.filterByCategorySlug('stickers-icons')">
-          <div class="cat-icon-wrapper bg-yellow-light">
-            <span class="cat-emoji">✨</span>
-          </div>
-          <h3>สติกเกอร์ & คลิปอาร์ตใส</h3>
-          <p>ไฟล์ PNG พื้นหลังโปร่งใส สำหรับตกแต่ง GoodNotes หรือสื่อการสอน</p>
-          <span class="cat-count">คลิปอาร์ต</span>
-        </div>
-
-        <div class="category-card" onclick="window.filterByCategorySlug('fun-math')">
-          <div class="cat-icon-wrapper bg-purple-light">
-            <span class="cat-emoji">123</span>
-          </div>
-          <h3>คณิตศาสตร์แสนสนุก</h3>
-          <p>การนับเลข บวกลบภาพ เกมเปรียบเทียบขนาด พร้อมเฉลยละเอียด</p>
-          <span class="cat-count">ใบงานเด็ก</span>
-        </div>
+        <!-- Rendered dynamically by script.js -->
       </div>
     </div>
   </section>
@@ -326,14 +275,13 @@
       <!-- Sub Filter Pills -->
       <div class="filter-tabs-wrapper">
         <div class="filter-tabs" id="filterTabs">
-          <button class="filter-btn active" data-filter="all">ทั้งหมด</button>
-          <button class="filter-btn highlight-free-tab" data-filter="free">🎁 โหลดฟรี</button>
+          <!-- Dynamically populated -->
         </div>
       </div>
 
       <!-- Products Grid -->
       <div class="products-grid" id="productsGrid">
-        <!-- Rendered dynamically by script.js from Supabase / Data Provider -->
+        <!-- Rendered dynamically by script.js -->
       </div>
     </div>
   </section>
@@ -367,7 +315,7 @@
     </div>
   </section>
 
-  <!-- Why Choose Us / Features Section -->
+  <!-- Why Choose Us Section -->
   <section class="section-padding bg-warm-white" id="features">
     <div class="container">
       <div class="section-header text-center">
@@ -428,7 +376,7 @@
             <i class="fa-solid fa-chevron-down accordion-icon"></i>
           </button>
           <div class="accordion-body">
-            <p>เมื่อชำระเงินเรียบร้อยแล้ว ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ดิจิทัล (PNG/JPG ความละเอียดสูง สำหรับรูปภาพ หรือ PDF 300 DPI สำหรับใบงาน) ไปยังอีเมลของคุณทันที สามารถคลิกดาวน์โหลดและบันทึกเก็บไว้ได้ตลอดไปครับ</p>
+            <p>เมื่อชำระเงินเรียบร้อยและได้รับการยืนยัน ระบบจะส่งลิงก์ดาวน์โหลด Google Drive สำหรับไฟล์ดิจิทัล (PNG/JPG ความละเอียดสูง สำหรับรูปภาพ หรือ PDF 300 DPI สำหรับใบงาน) ไปยังอีเมลของคุณทันทีครับ ส่วนผลงานที่ต้องจัดส่งพัสดุจะมีเลข Tracking แจ้งเตือนทางอีเมลครับ</p>
           </div>
         </div>
 
@@ -469,7 +417,7 @@
           </div>
         </div>
         <p class="footer-desc">
-          สตูดิโอขายรูปภาพดิจิทัลและใบงานการเรียนรู้ออนไลน์ สไตล์ Minimal & Warm อบอุ่น สบายตา พร้อมระบบจัดการหลังบ้านเชื่อมต่อ Supabase
+          สตูดิโอขายรูปภาพดิจิทัลและใบงานการเรียนรู้ออนไลน์ สไตล์ Minimal & Warm อบอุ่น สบายตา เพื่อการเรียนรู้และตกแต่งที่สร้างสรรค์
         </p>
         <div class="footer-socials">
           <a href="#" class="social-icon" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
@@ -480,20 +428,18 @@
 
       <div class="footer-col">
         <h4 class="footer-heading">หมวดหมู่สินค้า</h4>
-        <ul class="footer-links">
+        <ul class="footer-links" id="footerCategoriesList">
           <li><a href="#products" onclick="window.filterByMainType('image')">🎨 รูปภาพและอาร์ตเวิร์ก</a></li>
-          <li><a href="#products" onclick="window.filterByCategorySlug('wallpapers')">📱 วอลเปเปอร์มือถือ & iPad</a></li>
-          <li><a href="#products" onclick="window.filterByCategorySlug('stickers-icons')">✨ สติกเกอร์ & คลิปอาร์ต</a></li>
           <li><a href="#products" onclick="window.filterByMainType('worksheet')">📄 ใบงานและแบบฝึกหัดเด็ก</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h4 class="footer-heading">ผู้ดูแลระบบ (Admin)</h4>
+        <h4 class="footer-heading">ช่วยเหลือ & แนะนำ</h4>
         <ul class="footer-links">
-          <li><a href="admin.html" target="_blank"><i class="fa-solid fa-gauge"></i> หน้าแดชบอร์ดหลังบ้าน</a></li>
-          <li><a href="admin.html" target="_blank"><i class="fa-solid fa-plus-circle"></i> เพิ่มรูปภาพ & ใบงาน</a></li>
-          <li><a href="admin.html" target="_blank"><i class="fa-solid fa-cloud"></i> เชื่อมต่อฐานข้อมูล Supabase</a></li>
+          <li><a href="#features">ทำไมต้องเลือกเรา</a></li>
+          <li><a href="#faq">คำถามที่พบบ่อย</a></li>
+          <li><a href="#freebies">รับไฟล์ทดลองฟรี</a></li>
         </ul>
       </div>
 
@@ -511,7 +457,8 @@
       <div class="container footer-bottom-inner">
         <p>&copy; 2026 Wadfan Studio (วาดฝัน สตูดิโอ). สงวนลิขสิทธิ์ทุกประการ</p>
         <div class="footer-legal">
-          <a href="admin.html" target="_blank" style="color: var(--color-pink-primary); font-weight: 600;">Admin Management Portal</a>
+          <!-- Discreet Admin Portal Link with lock icon (Requires Login) -->
+          <a href="admin.html" class="discreet-admin-link" title="Staff & Admin Only"><i class="fa-solid fa-lock"></i> Staff Login</a>
         </div>
       </div>
     </div>
@@ -554,14 +501,14 @@
       </div>
       <button class="btn-primary checkout-btn" id="checkoutBtn" disabled>
         <i class="fa-solid fa-lock"></i>
-        <span>ดำเนินการสั่งซื้อ & รับไฟล์</span>
+        <span>ดำเนินการสั่งซื้อ</span>
       </button>
-      <p class="cart-secure-text"><i class="fa-solid fa-shield-halved"></i> รับประกันดาวน์โหลดได้ทันที 100%</p>
+      <p class="cart-secure-text"><i class="fa-solid fa-shield-halved"></i> รับประกันดาวน์โหลดและจัดส่งไฟล์ 100%</p>
     </div>
   </aside>
   <div class="cart-backdrop" id="cartBackdrop"></div>
 
-  <!-- Checkout Demo Modal -->
+  <!-- Checkout Modal (With Customer Image Upload for Custom Art) -->
   <div class="modal-backdrop" id="checkoutModal">
     <div class="modal-dialog checkout-dialog">
       <button class="modal-close-btn" id="checkoutCloseBtn">&times;</button>
@@ -570,16 +517,36 @@
           <i class="fa-solid fa-circle-check text-green"></i>
           <h3>ยืนยันคำสั่งซื้อ</h3>
         </div>
-        <p class="checkout-sub">กรอกข้อมูลเพื่อรับลิงก์ดาวน์โหลดไฟล์ภาพ / PDF ทันที</p>
+        <p class="checkout-sub">กรอกข้อมูลเพื่อรับลิงก์ดาวน์โหลด Google Drive หรือการจัดส่งพัสดุ</p>
 
         <form id="checkoutForm" class="checkout-form" onsubmit="event.preventDefault(); window.handleOrderSubmit();">
           <div class="form-group">
-            <label for="orderName">ชื่อ-นามสกุล / ชื่อผู้รับไฟล์</label>
-            <input type="text" id="orderName" required placeholder="เช่น วาดฝัน สตูดิโอ">
+            <label for="orderName">ชื่อ-นามสกุล / ชื่อผู้รับ</label>
+            <input type="text" id="orderName" required placeholder="เช่น คุณศุภกร ใจดี">
           </div>
           <div class="form-group">
-            <label for="orderEmail">อีเมลสำหรับจัดส่งไฟล์ (สำคัญมาก)</label>
+            <label for="orderEmail">อีเมลสำหรับจัดส่งลิงก์ไฟล์ / แจ้งเลขพัสดุ (สำคัญมาก)</label>
             <input type="email" id="orderEmail" required placeholder="example@email.com">
+          </div>
+          <div class="form-group">
+            <label for="orderPhone">เบอร์โทรศัพท์ติดต่อ</label>
+            <input type="tel" id="orderPhone" required placeholder="08X-XXX-XXXX">
+          </div>
+
+          <!-- Upload section (Shown when cart contains images) -->
+          <div class="form-group image-upload-group" id="checkoutImageUploadBox" style="display: none;">
+            <label for="customerImageFile" class="form-label">
+              <i class="fa-solid fa-cloud-arrow-up text-pink"></i> แนบรูปภาพของคุณ (สำหรับงานสั่งวาด / ปริ้นท์รูปภาพ)
+            </label>
+            <div class="upload-dropzone" id="uploadDropzone">
+              <input type="file" id="customerImageFile" accept="image/*" style="display: none;">
+              <div class="dropzone-inner" onclick="document.getElementById('customerImageFile').click();">
+                <i class="fa-regular fa-image dropzone-icon"></i>
+                <div class="dropzone-text" id="dropzoneText">คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)</div>
+                <small class="text-muted">ไฟล์จะถูกจัดเก็บเข้าสู่ Google Drive ของร้านตามเลขออเดอร์โดยอัตโนมัติ</small>
+              </div>
+            </div>
+            <div id="fileUploadPreview" class="file-upload-preview" style="display: none;"></div>
           </div>
 
           <div class="checkout-payment-box">
@@ -597,11 +564,21 @@
             </div>
           </div>
 
-          <button type="submit" class="btn-primary full-width btn-large">
-            <i class="fa-solid fa-cloud-arrow-down"></i>
-            <span>ยืนยันการชำระเงิน & รับไฟล์ทันที</span>
+          <button type="submit" class="btn-primary full-width btn-large" id="confirmOrderSubmitBtn">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>ยืนยันการสั่งซื้อ & ชำระเงิน</span>
           </button>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Success Modal (Shows Google Drive link for free items or Order No for review) -->
+  <div class="modal-backdrop" id="orderSuccessModal">
+    <div class="modal-dialog checkout-dialog">
+      <button class="modal-close-btn" onclick="document.getElementById('orderSuccessModal').classList.remove('open');">&times;</button>
+      <div class="checkout-modal-body text-center" id="orderSuccessContent">
+        <!-- Rendered dynamically -->
       </div>
     </div>
   </div>
