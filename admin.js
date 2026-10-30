@@ -501,14 +501,30 @@ async function handleSaveProduct() {
     metadata
   };
 
-  const result = await window.wadfanData.saveProduct(payload, variants);
+  const saveBtn = document.getElementById("saveProductBtn");
+  const origBtnContent = saveBtn ? saveBtn.innerHTML : "";
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>กำลังบันทึกสินค้า...</span>`;
+  }
 
-  if (result.success) {
-    showAdminToast("บันทึกข้อมูลสินค้าเรียบร้อยแล้ว", "success");
-    closeProductModal();
-    await refreshProductsTable();
-  } else {
-    showAdminToast(`เกิดข้อผิดพลาด: ${result.message}`, "error");
+  try {
+    const result = await window.wadfanData.saveProduct(payload, variants);
+
+    if (result.success) {
+      showAdminToast("บันทึกข้อมูลสินค้าเรียบร้อยแล้ว", "success");
+      closeProductModal();
+      await refreshProductsTable();
+    } else {
+      showAdminToast(`เกิดข้อผิดพลาด: ${result.message}`, "error");
+    }
+  } catch (err) {
+    showAdminToast(`เกิดข้อผิดพลาด: ${err.message}`, "error");
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = origBtnContent;
+    }
   }
 }
 
@@ -633,14 +649,30 @@ window.handleSaveCategory = async function () {
     sort_order
   };
 
-  const res = await window.wadfanData.saveCategory(payload);
-  if (res.success) {
-    showAdminToast("บันทึกหมวดหมู่เรียบร้อยแล้ว", "success");
-    categoryModal.classList.remove("open");
-    await loadCategories();
-    renderCategoriesTable();
-  } else {
-    showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
+  const saveCatBtn = document.getElementById("saveCategoryBtn");
+  const origCatBtn = saveCatBtn ? saveCatBtn.innerHTML : "";
+  if (saveCatBtn) {
+    saveCatBtn.disabled = true;
+    saveCatBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>กำลังบันทึกหมวดหมู่...</span>`;
+  }
+
+  try {
+    const res = await window.wadfanData.saveCategory(payload);
+    if (res.success) {
+      showAdminToast("บันทึกหมวดหมู่เรียบร้อยแล้ว", "success");
+      categoryModal.classList.remove("open");
+      await loadCategories();
+      renderCategoriesTable();
+    } else {
+      showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
+    }
+  } catch (err) {
+    showAdminToast(`เกิดข้อผิดพลาด: ${err.message}`, "error");
+  } finally {
+    if (saveCatBtn) {
+      saveCatBtn.disabled = false;
+      saveCatBtn.innerHTML = origCatBtn;
+    }
   }
 };
 
@@ -722,12 +754,28 @@ function renderOrdersTable() {
         statusBadge = `<span class="status-badge status-pending"><i class="fa-solid fa-clock"></i> รอตรวจสอบชำระเงิน</span>`;
       }
 
-      // Customer files indicator
+      // Customer files indicator (สามารถคลิกเปิดโฟลเดอร์ Google Drive จากตารางได้ทันที)
       const filesCount = o.customer_uploaded_files ? o.customer_uploaded_files.length : 0;
-      const filesBadge =
-        filesCount > 0
-          ? `<span class="file-chip-drive" title="บันทึกใน Drive: /Wadfan_Orders/${o.order_number}/"><i class="fa-brands fa-google-drive"></i> ${filesCount} ไฟล์ใน Drive</span>`
-          : `<span style="font-size: 0.8rem; color: #94A3B8;">ไม่มีไฟล์แนบ</span>`;
+      let filesBadge = "";
+      if (o.google_drive_folder_url) {
+        filesBadge = `
+          <a href="${o.google_drive_folder_url}" target="_blank" class="file-chip-drive-link" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #E8F5E9; color: #166534; border: 1.5px solid #86EFAC; border-radius: 99px; text-decoration: none; font-weight: 600; font-size: 0.82rem; transition: all 0.2s; box-shadow: 0 2px 6px rgba(22, 101, 52, 0.1);" title="คลิกเพื่อเปิดโฟลเดอร์ Google Drive ของออเดอร์นี้">
+            <i class="fa-brands fa-google-drive" style="color: #16A34A; font-size: 0.95rem;"></i>
+            <span>${filesCount > 0 ? filesCount : 1} ไฟล์ใน Drive</span>
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem; color: #166534;"></i>
+          </a>
+        `;
+      } else if (filesCount > 0) {
+        filesBadge = `
+          <a href="javascript:void(0)" onclick="window.openOrderDetailModal('${o.id}')" class="file-chip-drive-link" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #E0F2FE; color: #0369A1; border: 1.5px solid #7DD3FC; border-radius: 99px; text-decoration: none; font-weight: 600; font-size: 0.82rem; transition: all 0.2s; box-shadow: 0 2px 6px rgba(3, 105, 161, 0.1);" title="คลิกเพื่อเปิดดูไฟล์แนบของออเดอร์นี้">
+            <i class="fa-brands fa-google-drive" style="color: #0284C7; font-size: 0.95rem;"></i>
+            <span>${filesCount} ไฟล์แนบ</span>
+            <i class="fa-solid fa-eye" style="font-size: 0.72rem;"></i>
+          </a>
+        `;
+      } else {
+        filesBadge = `<span style="font-size: 0.8rem; color: #94A3B8;">ไม่มีไฟล์แนบ</span>`;
+      }
 
       const itemsSummary = (o.items || [])
         .map((i) => `<div style="font-size: 0.85rem; color: #334155;">• ${i.product_title} (${i.variant_name})</div>`)
@@ -1066,18 +1114,34 @@ window.openImageFull = function (url) {
 };
 
 window.confirmPaymentAction = async function (orderId) {
-  const res = await window.wadfanData.confirmOrderPayment(orderId);
-  if (res.success) {
-    showAdminToast("ยืนยันชำระเงินและส่งอีเมลลิงก์ Google Drive สำเร็จแล้ว!", "success");
-    await refreshOrdersTable();
-    window.openOrderDetailModal(orderId);
+  const btn = event && event.target ? event.target.closest("button") : null;
+  const originalBtn = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังยืนยัน...`;
+  }
 
-    // Show Email Preview
-    if (res.emailSent) {
-      window.previewSentEmail(res.emailSent);
+  try {
+    const res = await window.wadfanData.confirmOrderPayment(orderId);
+    if (res.success) {
+      showAdminToast("ยืนยันชำระเงินและส่งอีเมลลิงก์ Google Drive สำเร็จแล้ว!", "success");
+      await refreshOrdersTable();
+      window.openOrderDetailModal(orderId);
+
+      // Show Email Preview
+      if (res.emailSent) {
+        window.previewSentEmail(res.emailSent);
+      }
+    } else {
+      showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
     }
-  } else {
-    showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
+  } catch (err) {
+    showAdminToast(`เกิดข้อผิดพลาด: ${err.message}`, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalBtn;
+    }
   }
 };
 
@@ -1090,17 +1154,33 @@ window.saveTrackingAction = async function (orderId) {
     return;
   }
 
-  const res = await window.wadfanData.updateOrderTracking(orderId, carrier, trackingNumber);
-  if (res.success) {
-    showAdminToast("บันทึกเลขพัสดุและส่งอีเมลแจ้งลูกค้าเรียบร้อยแล้ว!", "success");
-    await refreshOrdersTable();
-    window.openOrderDetailModal(orderId);
+  const btn = event && event.target ? event.target.closest("button") : null;
+  const originalBtn = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...`;
+  }
 
-    if (res.emailSent) {
-      window.previewSentEmail(res.emailSent);
+  try {
+    const res = await window.wadfanData.updateOrderTracking(orderId, carrier, trackingNumber);
+    if (res.success) {
+      showAdminToast("บันทึกเลขพัสดุและส่งอีเมลแจ้งลูกค้าเรียบร้อยแล้ว!", "success");
+      await refreshOrdersTable();
+      window.openOrderDetailModal(orderId);
+
+      if (res.emailSent) {
+        window.previewSentEmail(res.emailSent);
+      }
+    } else {
+      showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
     }
-  } else {
-    showAdminToast(`เกิดข้อผิดพลาด: ${res.message}`, "error");
+  } catch (err) {
+    showAdminToast(`เกิดข้อผิดพลาด: ${err.message}`, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalBtn;
+    }
   }
 };
 

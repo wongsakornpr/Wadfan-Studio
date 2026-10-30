@@ -510,7 +510,18 @@
 
   <!-- Checkout Modal (With Customer Image Upload for Custom Art) -->
   <div class="modal-backdrop" id="checkoutModal">
-    <div class="modal-dialog checkout-dialog">
+    <div class="modal-dialog checkout-dialog" style="position: relative; overflow: hidden;">
+      <!-- Loading Overlay (Shown during order processing / upload) -->
+      <div id="checkoutLoadingOverlay" style="display: none; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.96); z-index: 100; border-radius: 20px; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; backdrop-filter: blur(5px);">
+        <div style="font-size: 3rem; color: #FF758F; margin-bottom: 16px;">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+        <h3 style="font-size: 1.25rem; color: #1E293B; margin-bottom: 8px;" id="checkoutLoadingTitle">กำลังดำเนินการสั่งซื้อ...</h3>
+        <p style="color: #64748B; font-size: 0.9rem; max-width: 380px; line-height: 1.5; margin: 0 auto;" id="checkoutLoadingSub">
+          ระบบกำลังอัปโหลดไฟล์และสลิปเข้าสู่ Google Drive ของร้าน กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้ครับ
+        </p>
+      </div>
+
       <button class="modal-close-btn" id="checkoutCloseBtn">&times;</button>
       <div class="checkout-modal-body">
         <div class="checkout-header-badge">
@@ -536,14 +547,14 @@
           <!-- Upload section (Shown when cart contains images) -->
           <div class="form-group image-upload-group" id="checkoutImageUploadBox" style="display: none;">
             <label for="customerImageFile" class="form-label">
-              <i class="fa-solid fa-cloud-arrow-up text-pink"></i> แนบรูปภาพของคุณ (สำหรับงานสั่งวาด / ปริ้นท์รูปภาพ)
+              <i class="fa-solid fa-cloud-arrow-up text-pink"></i> แนบรูปภาพของคุณ (สำหรับงานสั่งวาด / ปริ้นท์รูปภาพ - แนบได้หลายรูป)
             </label>
             <div class="upload-dropzone" id="uploadDropzone">
-              <input type="file" id="customerImageFile" accept="image/*" style="display: none;">
+              <input type="file" id="customerImageFile" accept="image/*" multiple style="display: none;">
               <div class="dropzone-inner" onclick="document.getElementById('customerImageFile').click();">
                 <i class="fa-regular fa-image dropzone-icon"></i>
-                <div class="dropzone-text" id="dropzoneText">คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)</div>
-                <small class="text-muted">ไฟล์จะถูกจัดเก็บเข้าสู่ Google Drive ของร้านตามเลขออเดอร์โดยอัตโนมัติ</small>
+                <div class="dropzone-text" id="dropzoneText">คลิกเพื่อเลือกรูปภาพจากเครื่อง (เลือกได้หลายรูป รวมไม่เกิน 100 MB)</div>
+                <small class="text-muted">ไฟล์ทั้งหมดจะถูกจัดเก็บเข้าสู่ Google Drive ของร้านตามเลขออเดอร์โดยอัตโนมัติ</small>
               </div>
             </div>
             <div id="fileUploadPreview" class="file-upload-preview" style="display: none;"></div>

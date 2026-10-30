@@ -601,18 +601,39 @@ class WadfanDataProvider {
     const gasUrl = this.getGoogleScriptUrl();
     if (gasUrl && filesToDrive.length > 0) {
       try {
-        const driveRes = await fetch("/api/upload-drive", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            order_number: orderNumber,
-            customer_name: orderData.customer_name,
-            files: filesToDrive,
-            script_url: gasUrl
-          })
-        });
+        let driveData = null;
 
-        const driveData = await driveRes.json();
+        // 1. ลองส่งตรงเข้า Google Apps Script (รองรับไฟล์ขนาดใหญ่สูงสุด 50 MB โดยไม่ติด Limit 4.5MB ของ Vercel)
+        try {
+          const directRes = await fetch(gasUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              order_number: orderNumber,
+              customer_name: orderData.customer_name,
+              files: filesToDrive
+            })
+          });
+          driveData = await directRes.json();
+        } catch (directErr) {
+          console.warn("Direct GAS fetch blocked or CORS, falling back to Vercel proxy...", directErr);
+        }
+
+        // 2. ถ้าส่งตรงไม่ได้ ลองส่งผ่าน Vercel Proxy /api/upload-drive
+        if (!driveData || !driveData.success) {
+          const driveRes = await fetch("/api/upload-drive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              order_number: orderNumber,
+              customer_name: orderData.customer_name,
+              files: filesToDrive,
+              script_url: gasUrl
+            })
+          });
+          driveData = await driveRes.json();
+        }
+
         if (driveData && driveData.success) {
           googleDriveFolderUrl = driveData.folder_url || "";
           

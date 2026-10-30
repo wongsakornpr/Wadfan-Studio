@@ -2575,6 +2575,21 @@ ul {
   }
 }
 
+/* Button Disabled & Spinner Utilities */
+button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.fa-spin {
+  animation: spin 1s linear infinite;
+}
+
 .toast.toast-success i {
   color: #10B981;
 }
@@ -2619,6 +2634,21 @@ ul {
   .footer-grid {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* Button Disabled & Spinner Utilities */
+button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.fa-spin {
+  animation: spin 1s linear infinite;
 }
 
 @media (max-width: 768px) {
@@ -2698,4 +2728,19 @@ ul {
     text-align: center;
     gap: 12px;
   }
+}
+
+/* Button Disabled & Spinner Utilities */
+button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.fa-spin {
+  animation: spin 1s linear infinite;
 }

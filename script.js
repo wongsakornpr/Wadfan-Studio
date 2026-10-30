@@ -12,8 +12,10 @@ let currentCategoryFilter = "all";
 let currentSearch = "";
 let selectedVariantForModal = null;
 let currentPreviewProduct = null;
-let customerAttachedFile = null;
+let customerAttachedFiles = [];
 let customerSlipFile = null;
+let isSubmittingOrder = false;
+const MAX_TOTAL_UPLOAD_SIZE = 100 * 1024 * 1024; // 100 MB max
 
 // Cart State (stored in localStorage)
 let shoppingCart = [];
@@ -171,6 +173,16 @@ window.filterByMainType = function (mainType) {
 
   document.querySelectorAll(".main-type-tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.maintype === mainType);
+  });
+
+  // อัปเดตสถานะ Active บน Navbar ด้านบนให้ตรงกับประเภทที่เลือก
+  document.querySelectorAll(".nav-link").forEach((link) => {
+    const onclickAttr = link.getAttribute("onclick") || "";
+    if (onclickAttr.includes(`filterByMainType('${mainType}')`)) {
+      link.classList.add("active");
+    } else if (onclickAttr.includes("filterByMainType") || link.getAttribute("href") === "#hero") {
+      link.classList.remove("active");
+    }
   });
 
   renderSubFilterTabs();
@@ -536,9 +548,8 @@ function openCheckoutModal() {
   }
 
   // Reset file inputs
-  customerAttachedFile = null;
-  if (fileUploadPreview) fileUploadPreview.style.display = "none";
-  if (dropzoneText) dropzoneText.textContent = "คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)";
+  customerAttachedFiles = [];
+  renderCustomerFilesPreview();
 
   customerSlipFile = null;
   if (customerSlipFileInput) customerSlipFileInput.value = "";
@@ -552,31 +563,86 @@ function closeCheckoutModal() {
   if (checkoutModal) checkoutModal.classList.remove("open");
 }
 
-// File Attachment Handler
+// Multi-file Attachment Handler for Customer Photos (Up to 100 MB)
+function renderCustomerFilesPreview() {
+  if (!fileUploadPreview || !dropzoneText) return;
+
+  if (customerAttachedFiles.length === 0) {
+    fileUploadPreview.style.display = "none";
+    fileUploadPreview.innerHTML = "";
+    dropzoneText.textContent = "คลิกเพื่อเลือกรูปภาพจากเครื่อง (เลือกได้หลายรูป รวมไม่เกิน 100 MB)";
+    return;
+  }
+
+  const totalBytes = customerAttachedFiles.reduce((acc, f) => acc + f.size, 0);
+  const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+
+  dropzoneText.textContent = `เลือกแล้ว ${customerAttachedFiles.length} รูป (รวม ${totalMB} MB) - คลิกเพื่อเพิ่มรูปอีก`;
+  fileUploadPreview.style.display = "block";
+
+  fileUploadPreview.innerHTML = `
+    <div style="background: #FFF0F3; border: 1.5px solid #FBCFE8; border-radius: 12px; padding: 12px; margin-top: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; color: #9D174D; font-weight: 600;">
+        <span><i class="fa-solid fa-images"></i> รูปภาพที่ลูกค้าแนบ (${customerAttachedFiles.length} รูป)</span>
+        <span style="font-size: 0.8rem; color: #64748B; font-weight: normal;">รวม ${totalMB} MB / สูงสุด 100 MB</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
+        ${customerAttachedFiles
+          .map(
+            (file, idx) => `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #FFF; border-radius: 8px; border: 1px solid #FBCFE8; font-size: 0.84rem;">
+            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 82%;">
+              <i class="fa-solid fa-file-image text-pink"></i>
+              <span style="font-weight: 500; color: #334155; overflow: hidden; text-overflow: ellipsis;">${file.name}</span>
+              <span style="color: #94A3B8; font-size: 0.76rem;">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+            </div>
+            <button type="button" onclick="window.removeAttachedFile(${idx})" style="color: #EF4444; border: none; background: transparent; font-size: 1.2rem; cursor: pointer; padding: 0 4px;" title="ลบรูปนี้">&times;</button>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
 if (customerImageFileInput) {
   customerImageFileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      customerAttachedFile = file;
-      if (dropzoneText) dropzoneText.textContent = `ไฟล์ที่เลือก: ${file.name}`;
-      if (fileUploadPreview) {
-        fileUploadPreview.style.display = "block";
-        fileUploadPreview.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #FFF0F3; border-radius: 8px; margin-top: 8px; font-size: 0.85rem;">
-            <span><i class="fa-solid fa-file-image text-pink"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-            <button type="button" style="color: #EF4444; font-size: 1rem;" onclick="window.clearAttachedFile()">&times;</button>
-          </div>
-        `;
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    let currentTotal = customerAttachedFiles.reduce((acc, f) => acc + f.size, 0);
+
+    for (const file of selectedFiles) {
+      if (currentTotal + file.size > MAX_TOTAL_UPLOAD_SIZE) {
+        showToast(`ขนาดไฟล์รวมเกิน 100 MB! ไฟล์ "${file.name}" ไม่ถูกเพิ่ม`, "error");
+        continue;
+      }
+
+      // ป้องกันการเลือกไฟล์ซ้ำชื่อและขนาดเดิม
+      if (!customerAttachedFiles.some((f) => f.name === file.name && f.size === file.size)) {
+        customerAttachedFiles.push(file);
+        currentTotal += file.size;
       }
     }
+
+    // Reset input เพื่อให้กดเลือกเพิ่มได้อีก
+    customerImageFileInput.value = "";
+    renderCustomerFilesPreview();
   });
 }
 
+window.removeAttachedFile = function (index) {
+  if (index >= 0 && index < customerAttachedFiles.length) {
+    customerAttachedFiles.splice(index, 1);
+    renderCustomerFilesPreview();
+  }
+};
+
 window.clearAttachedFile = function () {
-  customerAttachedFile = null;
+  customerAttachedFiles = [];
   if (customerImageFileInput) customerImageFileInput.value = "";
-  if (fileUploadPreview) fileUploadPreview.style.display = "none";
-  if (dropzoneText) dropzoneText.textContent = "คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)";
+  renderCustomerFilesPreview();
 };
 
 // Payment Slip Attachment Handler
@@ -607,86 +673,204 @@ window.clearSlipFile = function () {
 };
 
 window.handleOrderSubmit = async function () {
+  if (isSubmittingOrder) return;
+
+  const submitBtn = document.getElementById("confirmOrderSubmitBtn");
+  const loadingOverlay = document.getElementById("checkoutLoadingOverlay");
+  const loadingSub = document.getElementById("checkoutLoadingSub");
+  const originalBtnContent = submitBtn ? submitBtn.innerHTML : "";
+
   const name = document.getElementById("orderName").value.trim();
   const email = document.getElementById("orderEmail").value.trim();
   const phone = document.getElementById("orderPhone").value.trim();
 
+  if (!name || !email) {
+    showToast("กรุณากรอกชื่อและอีเมลให้ครบถ้วน", "error");
+    return;
+  }
+
   const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
   const isFree = totalAmount === 0;
 
-  // อ่านข้อมูลสลิปโอนเงิน (ถ้ามี)
-  let slipData = null;
-  if (customerSlipFile) {
-    const slipDataUrl = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(customerSlipFile);
-    });
+  // เริ่มต้นป้องกัน Double Submit และแสดง Loading Spinner ทันที
+  isSubmittingOrder = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+      <i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 8px;"></i>
+      <span>กำลังประมวลผลคำสั่งซื้อ... กรุณารอสักครู่</span>
+    `;
+  }
+  if (loadingOverlay) {
+    loadingOverlay.style.display = "flex";
+  }
 
-    slipData = {
-      name: customerSlipFile.name,
-      size: customerSlipFile.size,
-      type: customerSlipFile.type,
-      dataUrl: slipDataUrl,
-      file_raw: customerSlipFile
+  try {
+    // 1. อ่านข้อมูลสลิปโอนเงิน (ถ้ามี)
+    let slipData = null;
+    if (customerSlipFile) {
+      if (loadingSub) loadingSub.textContent = "กำลังประมวลผลสลิปโอนเงิน...";
+      const slipDataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(customerSlipFile);
+      });
+
+      slipData = {
+        name: customerSlipFile.name,
+        size: customerSlipFile.size,
+        type: customerSlipFile.type,
+        dataUrl: slipDataUrl,
+        file_raw: customerSlipFile
+      };
+    }
+
+    // 2. ประมวลผลรูปภาพทั้งหมดที่ลูกค้าแนบมา (รองรับหลายรูป สูงสุด 100 MB)
+    const uploadedFiles = [];
+    if (customerAttachedFiles.length > 0) {
+      for (let i = 0; i < customerAttachedFiles.length; i++) {
+        const file = customerAttachedFiles[i];
+        if (loadingSub) {
+          loadingSub.textContent = `กำลังประมวลผลรูปภาพ (${i + 1}/${customerAttachedFiles.length}): ${file.name}...`;
+        }
+
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        });
+
+        uploadedFiles.push({
+          name: file.name,
+          size: file.size,
+          type: file.type || "image/png",
+          dataUrl: dataUrl,
+          file_raw: file
+        });
+      }
+    }
+
+    if (loadingSub) {
+      loadingSub.textContent = "กำลังบันทึกคำสั่งซื้อและส่งไฟล์ขึ้น Google Drive ของร้าน...";
+    }
+
+    // 3. จัดเตรียมรายการสินค้า
+    const items = shoppingCart.map((i) => ({
+      product_title: i.title,
+      variant_name: i.variantName,
+      product_type: i.productType || "worksheet",
+      download_url: i.downloadUrl || "",
+      price: i.price
+    }));
+
+    const orderData = {
+      customer_name: name,
+      customer_email: email,
+      customer_phone: phone,
+      total_amount: totalAmount,
+      payment_slip_file: slipData,
+      uploaded_files: uploadedFiles
     };
+
+    const result = await window.wadfanData.createOrder(orderData, items);
+
+    if (result.success) {
+      // ส่งอีเมลแจ้งเตือนคำสั่งซื้อใหม่ไปยังแอดมิน wongsakorn.pr1996@gmail.com
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: "wongsakorn.pr1996@gmail.com",
+          subject: `🎨 [Wadfan Studio] มีคำสั่งซื้อใหม่ #${result.order_number} (${name})`,
+          message: `เรียน คุณวรศากร,\n\nมีคำสั่งซื้อใหม่เข้ามาในร้าน Wadfan Studio เรียบร้อยแล้วครับ:\n\n• เลขที่คำสั่งซื้อ: ${result.order_number}\n• ชื่อลูกค้า: ${name}\n• อีเมลลูกค้า: ${email}\n• เบอร์โทร: ${phone || '-'}\n• ยอดชำระ: ฿${totalAmount}\n\nคุณสามารถเข้าจัดการออเดอร์ ดูรูปภาพ และยืนยันการจัดส่งได้ที่:\nhttps://wadfunstudio.vercel.app/admin`
+        })
+      }).catch(() => {});
+    }
+
+    closeCheckoutModal();
+
+    // Reset Cart
+    shoppingCart = [];
+    saveCartToStorage();
+    updateCartUI();
+
+    // Reset File State
+    customerAttachedFiles = [];
+    customerSlipFile = null;
+    renderCustomerFilesPreview();
+    if (customerSlipFileInput) customerSlipFileInput.value = "";
+    if (slipUploadPreview) slipUploadPreview.style.display = "none";
+
+    // แสดงหน้าต่างขอบคุณสั่งซื้อสำเร็จ
+    if (orderSuccessContent && orderSuccessModal) {
+      const hasWorksheets = items.some((i) => i.product_type === "worksheet");
+      const hasImages = items.some((i) => i.product_type === "image");
+
+      let instructionHtml = "";
+
+      if (isFree) {
+        const freeWorksheet = items.find((i) => i.download_url);
+        const downloadLink = freeWorksheet ? freeWorksheet.download_url : "https://drive.google.com/drive/folders/wadfan-freebies";
+        instructionHtml = `
+          <div style="background: #D1FAE5; color: #065F46; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left;">
+            <strong><i class="fa-solid fa-gift"></i> ดาวน์โหลดฟรีได้ทันที:</strong>
+            <p style="font-size: 0.9rem; margin-top: 4px;">เราได้เตรียมไฟล์ใน Google Drive ให้คุณแล้ว สามารถคลิกดาวน์โหลดได้ทันทีครับ</p>
+            <a href="${downloadLink}" target="_blank" class="btn-primary" style="margin-top: 10px; display: inline-flex;">
+              <i class="fa-solid fa-cloud-arrow-down"></i> เปิด Google Drive ดาวน์โหลดไฟล์
+            </a>
+          </div>
+        `;
+      } else {
+        instructionHtml = `
+          <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left; font-size: 0.9rem; line-height: 1.6;">
+            <p><strong><i class="fa-solid fa-envelope-circle-check text-pink"></i> การจัดส่งไฟล์และสินค้า:</strong></p>
+            ${
+              hasWorksheets
+                ? `<p>📄 <strong>ใบงานออนไลน์:</strong> ทันทีที่แอดมินกดยืนยันยอดชำระเงิน ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> อัตโนมัติทันที</p>`
+                : ""
+            }
+            ${
+              hasImages
+                ? `<p>🎨 <strong>รูปภาพ/งานสั่งทำ:</strong> ทีมงานได้รับไฟล์รูปของคุณ (${uploadedFiles.length} รูป) เรียบร้อยแล้ว และจะแจ้งเลขพัสดุ (Tracking) ทางอีเมลเมื่อทำการจัดส่งครับ</p>`
+                : ""
+            }
+          </div>
+        `;
+      }
+
+      orderSuccessContent.innerHTML = `
+        <div style="font-size: 3.5rem; color: #10B981; margin-bottom: 10px;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h2 style="font-size: 1.45rem; color: #334155; margin-bottom: 6px;">สั่งซื้อสำเร็จเรียบร้อย!</h2>
+        <p style="color: #64748B; font-size: 0.92rem; margin-bottom: 12px;">หมายเลขคำสั่งซื้อของคุณ: <strong style="color: #FF758F;">${result.order_number}</strong></p>
+        ${instructionHtml}
+        <button class="btn-primary full-width" onclick="document.getElementById('orderSuccessModal').classList.remove('open');">
+          <i class="fa-solid fa-check"></i> เสร็จสิ้น
+        </button>
+      `;
+
+      orderSuccessModal.classList.add("open");
+    }
+
+    showToast("บันทึกคำสั่งซื้อของคุณเรียบร้อยแล้ว!", "success");
+  } catch (err) {
+    console.error("Order submit error:", err);
+    showToast(`เกิดข้อผิดพลาด: ${err.message}`, "error");
+  } finally {
+    // ปลดล็อก Double Submit และซ่อน Loading Overlay
+    isSubmittingOrder = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnContent;
+    }
+    if (loadingOverlay) {
+      loadingOverlay.style.display = "none";
+    }
   }
-
-  // Prepare Uploaded Files
-  const uploadedFiles = [];
-  if (customerAttachedFile) {
-    // อ่านข้อมูลไฟล์รูปภาพเป็น Base64 Data URL เพื่อให้เปิดดูและดาวน์โหลดได้ 100%
-    const dataUrl = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(customerAttachedFile);
-    });
-
-    uploadedFiles.push({
-      name: customerAttachedFile.name,
-      size: customerAttachedFile.size,
-      type: customerAttachedFile.type,
-      dataUrl: dataUrl,
-      file_raw: customerAttachedFile
-    });
-  }
-
-  // Order Items
-  const items = shoppingCart.map((i) => ({
-    product_title: i.title,
-    variant_name: i.variantName,
-    product_type: i.productType || "worksheet",
-    download_url: i.downloadUrl || "",
-    price: i.price
-  }));
-
-  const orderData = {
-    customer_name: name,
-    customer_email: email,
-    customer_phone: phone,
-    total_amount: totalAmount,
-    payment_slip_file: slipData,
-    uploaded_files: uploadedFiles
-  };
-
-  const result = await window.wadfanData.createOrder(orderData, items);
-
-  if (result.success) {
-    // ส่งอีเมลแจ้งเตือนคำสั่งซื้อใหม่ไปยังแอดมิน wongsakorn.pr1996@gmail.com อัตโนมัติผ่าน Resend
-    fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipient: "wongsakorn.pr1996@gmail.com",
-        subject: `🎨 [Wadfan Studio] มีคำสั่งซื้อใหม่ #${result.order_number} (${name})`,
-        message: `เรียน คุณวรศากร,\n\nมีคำสั่งซื้อใหม่เข้ามาในร้าน Wadfan Studio เรียบร้อยแล้วครับ:\n\n• เลขที่คำสั่งซื้อ: ${result.order_number}\n• ชื่อลูกค้า: ${name}\n• อีเมลลูกค้า: ${email}\n• เบอร์โทร: ${phone || '-'}\n• ยอดชำระ: ฿${totalAmount}\n\nคุณสามารถเข้าจัดการออเดอร์ ดูรูปภาพ และยืนยันการจัดส่งได้ที่:\nhttps://wadfunstudio.vercel.app/admin`
-      })
-    }).catch(() => {});
-  }
-
-  closeCheckoutModal();
+};
 
   // Reset Cart
   shoppingCart = [];
@@ -823,6 +1007,43 @@ function setupEventListeners() {
   if (drawerCloseBtn) drawerCloseBtn.addEventListener("click", closeMobileNav);
   if (drawerBackdrop) drawerBackdrop.addEventListener("click", closeMobileNav);
   drawerLinks.forEach((l) => l.addEventListener("click", closeMobileNav));
+
+  // Desktop & Mobile Navbar Active Tab Switcher & Scrollspy
+  const allNavLinks = document.querySelectorAll(".nav-link");
+  allNavLinks.forEach((link) => {
+    link.addEventListener("click", function () {
+      allNavLinks.forEach((l) => l.classList.remove("active"));
+      this.classList.add("active");
+    });
+  });
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      const scrollPosition = window.scrollY + 160;
+      const sections = ["faq", "features", "products", "categories", "hero"]; // check bottom to top
+
+      for (const secId of sections) {
+        const sec = document.getElementById(secId);
+        if (!sec) continue;
+        const top = sec.offsetTop;
+        const height = sec.offsetHeight;
+
+        if (scrollPosition >= top && scrollPosition <= top + height) {
+          allNavLinks.forEach((link) => {
+            const href = link.getAttribute("href") || "";
+            if (href === `#${secId}`) {
+              link.classList.add("active");
+            } else if (href.startsWith("#")) {
+              link.classList.remove("active");
+            }
+          });
+          break;
+        }
+      }
+    },
+    { passive: true }
+  );
 }
 
 function setupAccordion() {
