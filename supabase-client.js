@@ -6,6 +6,16 @@
  * 3. Orders (ระบบจัดการคำสั่งซื้อ, ยืนยันชำระเงิน, ส่งลิงก์ Google Drive, ส่งเลขพัสดุ Tracking)
  */
 
+// ==============================================================================
+// 🌐 ค่าการเชื่อมต่อฐานข้อมูลส่วนกลางสำหรับทุกอุปกรณ์ (Default Config for Mobile & Visitors)
+// เมื่อใส่ค่าที่นี่ ทั้งมือถือ แท็บเล็ต และลูกค้าทุกคนที่เข้าเว็บจะเชื่อมต่อ Supabase ได้ทันที 100%
+// ==============================================================================
+const DEFAULT_SYSTEM_CONFIG = {
+  supabaseUrl: "https://cgpmogvkmgdmshezobzg.supabase.co", // Supabase Project URL ของคุณ
+  supabaseAnonKey: "", // นำ Supabase Anon Key (ขึ้นต้นด้วย eyJ...) มาใส่ที่นี่ (ดูวิธีได้ในหน้า Admin > ตั้งค่า Supabase)
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbzvXAdPtwYWVJJfo6n2ABidmObkwLe_VTzpTpyEJl1U-Q5fhoyufQOAeqjHO_v_qYwl/exec" // Google Apps Script สำหรับอัปโหลดรูปลง Drive
+};
+
 // หมวดหมู่เริ่มต้น (Fallback)
 const DEFAULT_SAMPLE_CATEGORIES = [
   { id: "cat-img-1", name: "ภาพวาดลายเส้นน่ารัก", slug: "cute-illustrations", product_type: "image", sort_order: 1 },
@@ -250,9 +260,11 @@ class WadfanDataProvider {
   }
 
   getConfig() {
+    const localUrl = localStorage.getItem("wadfan_supabase_url");
+    const localKey = localStorage.getItem("wadfan_supabase_key");
     return {
-      url: localStorage.getItem("wadfan_supabase_url") || "",
-      key: localStorage.getItem("wadfan_supabase_key") || ""
+      url: (localUrl && localUrl.trim()) || DEFAULT_SYSTEM_CONFIG.supabaseUrl || "",
+      key: (localKey && localKey.trim()) || DEFAULT_SYSTEM_CONFIG.supabaseAnonKey || ""
     };
   }
 
@@ -621,7 +633,8 @@ class WadfanDataProvider {
   }
 
   getGoogleScriptUrl() {
-    return localStorage.getItem("wadfan_google_script_url") || "";
+    const localGas = localStorage.getItem("wadfan_google_script_url");
+    return (localGas && localGas.trim()) || DEFAULT_SYSTEM_CONFIG.googleScriptUrl || "";
   }
 
   setGoogleScriptUrl(url) {

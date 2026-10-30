@@ -640,7 +640,24 @@
 
         <div class="connection-test-result" id="connectionTestResult" style="display: none;"></div>
 
-        <div class="supabase-guide-box">
+        <!-- กล่องสำหรับคัดลอก Config เพื่อให้แสดงผลบนมือถือและลูกค้าทุกคน -->
+        <div class="supabase-mobile-sync-box" style="margin-top: 18px; padding: 14px; background: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <strong style="color: #166534; font-size: 0.95rem;">
+              <i class="fa-solid fa-mobile-screen-button"></i> นำไปใช้กับมือถือ & ลูกค้าทุกคน (Vercel)
+            </strong>
+            <button type="button" id="copySystemConfigBtn" style="padding: 6px 14px; background: #16A34A; color: #fff; border: none; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(22,163,74,0.2);">
+              <i class="fa-solid fa-copy"></i> คัดลอกโค้ด Config
+            </button>
+          </div>
+          <p style="font-size: 0.8rem; color: #15803D; margin-bottom: 8px; line-height: 1.4;">
+            เนื่องจากค่าที่บันทึกในบราวเซอร์นี้จะจำเฉพาะในคอมฯ เครื่องนี้ 
+            หากต้องการให้ <strong>มือถือ แท็บเล็ต หรือลูกค้าทุกคนที่เข้าเว็บเห็นสินค้าจริง</strong> ให้กดปุ่ม <strong>"คัดลอกโค้ด Config"</strong> แล้วนำไปวางทับ <code>DEFAULT_SYSTEM_CONFIG</code> ในไฟล์ <code>supabase-client.js</code> บรรทัดที่ 13 ครับ
+          </p>
+          <pre id="systemConfigPreview" style="background: #FFFFFF; border: 1px solid #BBF7D0; border-radius: 8px; padding: 10px; font-size: 0.78rem; color: #1E293B; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin: 0; font-family: monospace;"></pre>
+        </div>
+
+        <div class="supabase-guide-box" style="margin-top: 14px;">
           <h4><i class="fa-solid fa-lightbulb text-yellow-dark"></i> วิธีสร้างตาราง & สิทธิ์ใน Supabase:</h4>
           <p>คัดลอกโค้ดจาก <strong>"สคริปต์ SQL Supabase"</strong> ไปวางในเมนู <strong>SQL Editor</strong> บนเว็บ Supabase แล้วกด <strong>Run</strong> หนึ่งครั้ง เพื่อสร้างตารางสินค้า หมวดหมู่ และคำสั่งซื้อครับ</p>
         </div>

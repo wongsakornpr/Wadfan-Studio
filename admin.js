@@ -1528,10 +1528,40 @@ function setupEventListeners() {
   if (testConnectionBtn) testConnectionBtn.addEventListener("click", handleTestConnection);
   if (saveSupabaseConfigBtn) saveSupabaseConfigBtn.addEventListener("click", handleSaveSupabaseConfig);
 
+  const copySystemConfigBtn = document.getElementById("copySystemConfigBtn");
+  if (copySystemConfigBtn) {
+    copySystemConfigBtn.addEventListener("click", () => {
+      updateSystemConfigCodePreview();
+      const preview = document.getElementById("systemConfigPreview");
+      if (preview && preview.textContent) {
+        navigator.clipboard.writeText(preview.textContent).then(() => {
+          showAdminToast("คัดลอกโค้ด Config สำเร็จแล้ว! นำไปวางใน supabase-client.js ได้เลยครับ", "success");
+        }).catch(() => {
+          showAdminToast("กรุณาคลุมดำและคัดลอกข้อความในกรอบสีเขียวครับ", "info");
+        });
+      }
+    });
+  }
+
+  [supabaseUrlInput, supabaseKeyInput, googleScriptUrlInput].forEach(inp => {
+    if (inp) inp.addEventListener("input", updateSystemConfigCodePreview);
+  });
+
   // SQL Schema
   if (openSqlModalBtn) openSqlModalBtn.addEventListener("click", () => sqlModal.classList.add("open"));
   if (closeSqlModalBtn) closeSqlModalBtn.addEventListener("click", () => sqlModal.classList.remove("open"));
   if (copySqlBtn) copySqlBtn.addEventListener("click", handleCopySql);
+}
+
+function updateSystemConfigCodePreview() {
+  const preview = document.getElementById("systemConfigPreview");
+  if (!preview) return;
+  const url = (supabaseUrlInput.value || "").trim() || "https://cgpmogvkmgdmshezobzg.supabase.co";
+  const key = (supabaseKeyInput.value || "").trim();
+  const gas = (googleScriptUrlInput && googleScriptUrlInput.value ? googleScriptUrlInput.value.trim() : "") || "https://script.google.com/macros/s/AKfycbzvXAdPtwYWVJJfo6n2ABidmObkwLe_VTzpTpyEJl1U-Q5fhoyufQOAeqjHO_v_qYwl/exec";
+
+  const code = `const DEFAULT_SYSTEM_CONFIG = {\n  supabaseUrl: "${url}",\n  supabaseAnonKey: "${key}",\n  googleScriptUrl: "${gas}"\n};`;
+  preview.textContent = code;
 }
 
 function openSupabaseModal() {
@@ -1542,6 +1572,7 @@ function openSupabaseModal() {
     googleScriptUrlInput.value = window.wadfanData.getGoogleScriptUrl();
   }
   connectionTestResult.style.display = "none";
+  updateSystemConfigCodePreview();
   supabaseModal.classList.add("open");
 }
 
