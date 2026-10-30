@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wadfan Studio (วาดฝัน สตูดิโอ) | ร้านขายรูปภาพดิจิทัล & ใบงานออนไลน์</title>
+  <meta name="description" content="แหล่งรวมรูปภาพดิจิทัลน่ารัก วอลเปเปอร์ คลิปอาร์ต และใบงานการเรียนรู้สำหรับเด็ก ดีไซน์มินิมอล อบอุ่น สบายตา">
+  
+  <!-- Google Fonts: Prompt & Mali -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Floating Background Ambient Shapes -->
+  <div class="bg-shape shape-pink"></div>
+  <div class="bg-shape shape-blue"></div>
+  <div class="bg-shape shape-yellow"></div>
+
+  <!-- Announcement Bar -->
+  <aside class="top-announcement" aria-label="แถบประกาศโปรโมชั่น">
+    <div class="container announcement-content">
+      <span>✨ ฉลองเปิดสตูดิโอใหม่! รวมผลงาน<strong>ภาพวาดดิจิทัล</strong> และ <strong>ใบงานการเรียนรู้</strong> น่ารักอบอุ่น</span>
+      <div class="announcement-right">
+        <a href="#products" class="announcement-link">เลือกชมสินค้าทั้งหมด <i class="fa-solid fa-arrow-right"></i></a>
+        <span class="announcement-sep">|</span>
+        <a href="admin.html" class="admin-quick-link" target="_blank"><i class="fa-solid fa-lock"></i> จัดการหลังบ้าน (Admin)</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Navigation Bar -->
+  <header class="navbar-wrapper">
+    <nav class="navbar container">
+      <!-- Logo -->
+      <a href="#" class="logo">
+        <div class="logo-icon">
+          <i class="fa-solid fa-cloud"></i>
+          <i class="fa-solid fa-wand-magic-sparkles star-sparkle"></i>
+        </div>
+        <div class="logo-text">
+          <span class="brand-en">Wadfan<span class="dot">.</span>Studio</span>
+          <span class="brand-th">วาดฝัน สตูดิโอ</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <ul class="nav-links">
+        <li><a href="#hero" class="nav-link active">หน้าแรก</a></li>
+        <li><a href="#products" onclick="window.filterByMainType('image')" class="nav-link">🎨 รูปภาพดิจิทัล</a></li>
+        <li><a href="#products" onclick="window.filterByMainType('worksheet')" class="nav-link">📄 ใบงานการเรียนรู้</a></li>
+        <li><a href="#categories" class="nav-link">หมวดหมู่สินค้า</a></li>
+        <li><a href="#features" class="nav-link">จุดเด่นของเรา</a></li>
+        <li><a href="#faq" class="nav-link">คำถามที่พบบ่อย</a></li>
+      </ul>
+
+      <!-- Nav Actions -->
+      <div class="nav-actions">
+        <!-- Search Button -->
+        <button class="icon-btn search-toggle-btn" id="searchToggleBtn" title="ค้นหาสินค้า">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+
+        <!-- Cart Button -->
+        <button class="cart-btn" id="cartBtn" title="ตะกร้าสินค้า">
+          <i class="fa-solid fa-basket-shopping"></i>
+          <span class="cart-label">ตะกร้า</span>
+          <span class="cart-badge" id="cartCount">0</span>
+        </button>
+
+        <!-- Admin Portal Icon Button -->
+        <a href="admin.html" class="icon-btn admin-badge-btn" title="ระบบจัดการหลังบ้าน (Admin Management)">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="เปิดเมนู">
+          <i class="fa-solid fa-bars-staggered"></i>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Mobile Drawer Menu -->
+  <div class="mobile-drawer" id="mobileDrawer">
+    <div class="drawer-header">
+      <div class="drawer-logo">
+        <i class="fa-solid fa-cloud text-pink"></i>
+        <span>Wadfan Studio</span>
+      </div>
+      <button class="drawer-close" id="drawerCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <ul class="drawer-links">
+      <li><a href="#hero" class="drawer-link"><i class="fa-solid fa-house"></i> หน้าแรก</a></li>
+      <li><a href="#products" onclick="window.filterByMainType('image')" class="drawer-link"><i class="fa-solid fa-palette"></i> รูปภาพดิจิทัล (Digital Art)</a></li>
+      <li><a href="#products" onclick="window.filterByMainType('worksheet')" class="drawer-link"><i class="fa-solid fa-file-lines"></i> ใบงานการเรียนรู้ (Worksheets)</a></li>
+      <li><a href="#categories" class="drawer-link"><i class="fa-solid fa-shapes"></i> หมวดหมู่สินค้า</a></li>
+      <li><a href="#features" class="drawer-link"><i class="fa-solid fa-heart"></i> จุดเด่นของเรา</a></li>
+      <li><a href="#faq" class="drawer-link"><i class="fa-solid fa-circle-question"></i> คำถามที่พบบ่อย</a></li>
+      <li><a href="admin.html" target="_blank" class="drawer-link text-pink"><i class="fa-solid fa-gear"></i> ระบบจัดการหลังบ้าน (Admin)</a></li>
+    </ul>
+    <div class="drawer-footer">
+      <a href="https://line.me" target="_blank" class="btn-primary full-width">
+        <i class="fa-brands fa-line"></i> แอด LINE @wadfanstudio
+      </a>
+    </div>
+  </div>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <!-- Hero Section -->
+  <section class="hero-section" id="hero">
+    <div class="container hero-grid">
+      <!-- Left Hero Content -->
+      <div class="hero-content">
+        <div class="hero-tag">
+          <span class="tag-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Minimal & Warm Studio</span>
+          <span>ภาพวาดดิจิทัลและสื่อการเรียนรู้</span>
+        </div>
+        <h1 class="hero-title">
+          สร้างสรรค์จินตนาการ <br>
+          ด้วย <span class="highlight-pink">รูปภาพดิจิทัล</span> <br>
+          และ <span class="highlight-blue">ใบงานออนไลน์</span> คุณภาพสูง
+        </h1>
+        <p class="hero-desc">
+          แหล่งรวมงานอาร์ตเวิร์ก วอลเปเปอร์ สติกเกอร์ตกแต่ง และแบบฝึกหัดเด็กปฐมวัย-ประถมฯ 
+          กำหนดขนาดและสิทธิ์การใช้งานได้ครบวงจร สั่งซื้อแล้วดาวน์โหลดไฟล์คมชัดได้ทันที 24 ชม.
+        </p>
+
+        <div class="hero-buttons">
+          <button class="btn-primary btn-large" onclick="window.filterByMainType('image')">
+            <i class="fa-solid fa-palette"></i>
+            <span>เลือกซื้อรูปภาพดิจิทัล</span>
+          </button>
+          <button class="btn-secondary btn-large" onclick="window.filterByMainType('worksheet')">
+            <i class="fa-solid fa-book-open"></i>
+            <span>เลือกซื้อใบงานการเรียนรู้</span>
+          </button>
+        </div>
+
+        <!-- Trust Stats -->
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-number">850+</span>
+            <span class="stat-text">ผลงานพร้อมใช้</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-number">15,000+</span>
+            <span class="stat-text">ดาวน์โหลดสำเร็จ</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-number">4.9/5</span>
+            <span class="stat-text">
+              <i class="fa-solid fa-star text-yellow"></i> ความพึงพอใจ
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Hero Visual / Dual Product Showcase (Artwork & Worksheet) -->
+      <div class="hero-visual">
+        <div class="hero-card-stack">
+          <!-- Main Showcase Card -->
+          <div class="hero-main-card">
+            <div class="card-glass-header">
+              <div class="window-dots">
+                <span class="dot dot-pink"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-blue"></span>
+              </div>
+              <span class="mockup-label">Digital Art & Worksheet Showcase</span>
+            </div>
+
+            <!-- Dual Visual Box -->
+            <div class="mockup-preview-dual">
+              <!-- Left side: Digital Artwork -->
+              <div class="dual-box-art">
+                <img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=400&auto=format&fit=crop&q=80" alt="Sample Artwork">
+                <span class="mini-art-pill">🎨 4K & Multi-Sizes</span>
+              </div>
+              <!-- Right side: Educational Worksheet -->
+              <div class="dual-box-ws">
+                <div class="ws-mini-header">Wadfan Math</div>
+                <div class="ws-mini-icons">
+                  <span>🍎 x 3</span>
+                  <span>⭐ x 5</span>
+                </div>
+                <div class="ws-mini-lines"></div>
+                <span class="mini-ws-pill">📄 PDF 300 DPI</span>
+              </div>
+            </div>
+
+            <div class="card-glass-footer">
+              <div class="card-author">
+                <div class="avatar-circle">✨</div>
+                <div>
+                  <strong>Wadfan Studio Original</strong>
+                  <small>รูปภาพ & แบบฝึกหัดปรับขนาดได้</small>
+                </div>
+              </div>
+              <span class="badge-price">เริ่มต้น ฿29</span>
+            </div>
+          </div>
+
+          <!-- Floating Badge 1 (Instant Download) -->
+          <div class="floating-badge badge-top-left">
+            <div class="badge-icon-box bg-pink-light">
+              <i class="fa-solid fa-bolt text-pink"></i>
+            </div>
+            <div>
+              <strong>โหลดได้ทันที 24 ชม.</strong>
+              <small>ลิงก์จัดส่งเข้า Email / LINE</small>
+            </div>
+          </div>
+
+          <!-- Floating Badge 2 (Supabase Connected) -->
+          <div class="floating-badge badge-bottom-right">
+            <div class="badge-icon-box bg-blue-light">
+              <i class="fa-solid fa-database text-blue"></i>
+            </div>
+            <div>
+              <strong>เชื่อมต่อ Supabase</strong>
+              <small>จัดการสินค้าหลังบ้านแบบ Real-time</small>
+            </div>
+          </div>
+
+          <!-- Decorative Floating Sparkles -->
+          <div class="floating-sticker sticker-1">🎨</div>
+          <div class="floating-sticker sticker-2">✏️</div>
+          <div class="floating-sticker sticker-3">☁️</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories Section -->
+  <section class="section-padding bg-warm-white" id="categories">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-subtitle">หมวดหมู่ผลงานทั้งหมด</span>
+        <h2 class="section-title">เลือกชมผลงานตามความต้องการ</h2>
+        <p class="section-desc">ทั้งงานศิลปะภาพวาดน่ารัก วอลเปเปอร์ สติกเกอร์ และแบบฝึกหัดพัฒนาทักษะเด็ก</p>
+      </div>
+
+      <div class="categories-grid" id="categoriesGrid">
+        <!-- Dynamically rendered or static sample -->
+        <div class="category-card" onclick="window.filterByCategorySlug('cute-illustrations')">
+          <div class="cat-icon-wrapper bg-pink-light">
+            <span class="cat-emoji">🎨</span>
+          </div>
+          <h3>ภาพวาด & อาร์ตเวิร์ก</h3>
+          <p>ภาพประกอบน่ารัก มีให้เลือกขนาด S, M, L และสิทธิ์เชิงพาณิชย์</p>
+          <span class="cat-count">รูปภาพดิจิทัล</span>
+        </div>
+
+        <div class="category-card" onclick="window.filterByCategorySlug('wallpapers')">
+          <div class="cat-icon-wrapper bg-blue-light">
+            <span class="cat-emoji">📱</span>
+          </div>
+          <h3>วอลเปเปอร์มือถือ & iPad</h3>
+          <p>ภาพหน้าจอความคมชัด 4K ปรับสมดุลสายตา สบายใจทุกครั้งที่เปิดจอ</p>
+          <span class="cat-count">วอลเปเปอร์</span>
+        </div>
+
+        <div class="category-card" onclick="window.filterByCategorySlug('stickers-icons')">
+          <div class="cat-icon-wrapper bg-yellow-light">
+            <span class="cat-emoji">✨</span>
+          </div>
+          <h3>สติกเกอร์ & คลิปอาร์ตใส</h3>
+          <p>ไฟล์ PNG พื้นหลังโปร่งใส สำหรับตกแต่ง GoodNotes หรือสื่อการสอน</p>
+          <span class="cat-count">คลิปอาร์ต</span>
+        </div>
+
+        <div class="category-card" onclick="window.filterByCategorySlug('fun-math')">
+          <div class="cat-icon-wrapper bg-purple-light">
+            <span class="cat-emoji">123</span>
+          </div>
+          <h3>คณิตศาสตร์แสนสนุก</h3>
+          <p>การนับเลข บวกลบภาพ เกมเปรียบเทียบขนาด พร้อมเฉลยละเอียด</p>
+          <span class="cat-count">ใบงานเด็ก</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Product Showcase Section -->
+  <section class="section-padding" id="products">
+    <div class="container">
+      <div class="section-header-flex">
+        <div>
+          <span class="section-subtitle">ผลงานและสินค้าแนะนำ</span>
+          <h2 class="section-title">เลือกซื้อรูปภาพ & ใบงานออนไลน์</h2>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="product-search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="productSearchInput" placeholder="ค้นหาชื่อรูปภาพ หรือใบงาน..." />
+        </div>
+      </div>
+
+      <!-- Main Type Tabs (All / Images / Worksheets) -->
+      <div class="main-type-tabs-wrapper">
+        <button class="main-type-tab active" data-maintype="all">
+          <i class="fa-solid fa-border-all"></i> สินค้าทั้งหมด
+        </button>
+        <button class="main-type-tab" data-maintype="image">
+          <i class="fa-solid fa-palette text-blue"></i> ขายรูปภาพดิจิทัล (Digital Art)
+        </button>
+        <button class="main-type-tab" data-maintype="worksheet">
+          <i class="fa-solid fa-file-lines text-pink"></i> ขายใบงานการเรียนรู้ (Worksheets)
+        </button>
+      </div>
+
+      <!-- Sub Filter Pills -->
+      <div class="filter-tabs-wrapper">
+        <div class="filter-tabs" id="filterTabs">
+          <button class="filter-btn active" data-filter="all">ทั้งหมด</button>
+          <button class="filter-btn highlight-free-tab" data-filter="free">🎁 โหลดฟรี</button>
+        </div>
+      </div>
+
+      <!-- Products Grid -->
+      <div class="products-grid" id="productsGrid">
+        <!-- Rendered dynamically by script.js from Supabase / Data Provider -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Freebie Banner Section -->
+  <section class="freebie-banner-section" id="freebies">
+    <div class="container">
+      <div class="freebie-card">
+        <div class="freebie-content">
+          <div class="freebie-badge">🎉 ของขวัญพิเศษจาก Wadfan Studio</div>
+          <h2>รับชุดของขวัญดิจิทัลทดลองใช้ฟรี 100%</h2>
+          <p>สัมผัสคุณภาพไฟล์พิมพ์ 300 DPI และไฟล์ภาพความละเอียดสูง พร้อมวอลเปเปอร์และใบงานฟรี 20 หน้า</p>
+          <div class="freebie-form">
+            <div class="input-with-icon">
+              <i class="fa-regular fa-envelope"></i>
+              <input type="email" id="freebieEmail" placeholder="กรอกอีเมลของคุณเพื่อรับลิงก์ดาวน์โหลด">
+            </div>
+            <button class="btn-primary" id="freebieSubmitBtn">
+              <span>รับลิงก์ไฟล์ฟรีทันที</span>
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+          <span class="freebie-note">🔒 เราเคารพความเป็นส่วนตัวของคุณ จะไม่มีการส่งสแปมใดๆ ทั้งสิ้น</span>
+        </div>
+        <div class="freebie-illustration">
+          <div class="gift-box-art">
+            <i class="fa-solid fa-gift"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Choose Us / Features Section -->
+  <section class="section-padding bg-warm-white" id="features">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-subtitle">ทำไมต้องเลือกเรา</span>
+        <h2 class="section-title">มาตรฐานและคุณภาพที่คุณวางใจ</h2>
+        <p class="section-desc">เราใส่ใจทุกรายละเอียดตั้งแต่การวาดเส้น โทนสี ไปจนถึงการจัดสรรขนาดไฟล์ที่พร้อมใช้งาน</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-box bg-pink-light">
+            <i class="fa-solid fa-palette text-pink"></i>
+          </div>
+          <h3>ดีไซน์ Minimal & Warm</h3>
+          <p>ลายเส้นนุ่มนวล โทนสีสบายตา เหมาะสำหรับตกแต่งห้อง สื่อสาร และเสริมสร้างพัฒนาการเด็ก</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box bg-blue-light">
+            <i class="fa-solid fa-ruler-combined text-blue"></i>
+          </div>
+          <h3>กำหนดขนาด & สิทธิ์ได้อิสระ</h3>
+          <p>เลือกซื้อตามขนาดที่ต้องการ ทั้งขนาดเว็บ สิ่งพิมพ์ หรือสิทธิ์เชิงพาณิชย์ ในราคาที่คุ้มค่า</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box bg-purple-light">
+            <i class="fa-solid fa-file-pdf text-purple"></i>
+          </div>
+          <h3>ไฟล์คุณภาพสูง 300 DPI</h3>
+          <p>พิมพ์คมกริบ รายละเอียดชัดเจน ทั้งภาพวาดขนาดใหญ่และใบงานแบบฝึกหัดขนาด A4</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box bg-yellow-light">
+            <i class="fa-solid fa-bolt text-yellow-dark"></i>
+          </div>
+          <h3>ดาวน์โหลดได้ทันที 24 ชม.</h3>
+          <p>ระบบจัดส่งไฟล์อัตโนมัติ รวดเร็ว พร้อมเก็บบันทึกไฟล์ให้ดาวน์โหลดซ้ำได้ตลอดชีพ</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="section-padding" id="faq">
+    <div class="container faq-container">
+      <div class="section-header text-center">
+        <span class="section-subtitle">ข้อสงสัยที่พบบ่อย</span>
+        <h2 class="section-title">คำถามที่คุณอาจต้องการทราบ</h2>
+        <p class="section-desc">เรารวบรวมคำตอบเกี่ยวกับการซื้อรูปภาพและใบงานออนไลน์</p>
+      </div>
+
+      <div class="accordion" id="faqAccordion">
+        <div class="accordion-item active">
+          <button class="accordion-header">
+            <span>สั่งซื้อแล้วจะได้รับสินค้าในรูปแบบใด?</span>
+            <i class="fa-solid fa-chevron-down accordion-icon"></i>
+          </button>
+          <div class="accordion-body">
+            <p>เมื่อชำระเงินเรียบร้อยแล้ว ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ดิจิทัล (PNG/JPG ความละเอียดสูง สำหรับรูปภาพ หรือ PDF 300 DPI สำหรับใบงาน) ไปยังอีเมลของคุณทันที สามารถคลิกดาวน์โหลดและบันทึกเก็บไว้ได้ตลอดไปครับ</p>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header">
+            <span>การนำรูปภาพไปใช้เชิงพาณิชย์ (Commercial Use) มีเงื่อนไขอย่างไร?</span>
+            <i class="fa-solid fa-chevron-down accordion-icon"></i>
+          </button>
+          <div class="accordion-body">
+            <p>สำหรับสินค้าประเภทรูปภาพ คุณสามารถเลือกซื้อตัวเลือก <strong>"ขนาด L + สิทธิ์เชิงพาณิชย์"</strong> เพื่อนำภาพไปใช้ในการผลิตสินค้าขายต่อ โปสเตอร์ ผลิตภัณฑ์ หรือสื่อโฆษณาได้ตามข้อกำหนดลิขสิทธิ์ของ Wadfan Studio ครับ</p>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header">
+            <span>ใบงานการเรียนรู้สามารถพิมพ์ซ้ำได้กี่ครั้ง?</span>
+            <i class="fa-solid fa-chevron-down accordion-icon"></i>
+          </button>
+          <div class="accordion-body">
+            <p>สามารถพิมพ์ (Print) ซ้ำได้ไม่จำกัดจำนวนครั้ง สำหรับการเรียนรู้ของบุตรหลานหรือนักเรียนในชั้นเรียนของคุณได้ตลอดชีพครับ</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-brand-col">
+        <div class="logo">
+          <div class="logo-icon">
+            <i class="fa-solid fa-cloud"></i>
+          </div>
+          <div class="logo-text">
+            <span class="brand-en">Wadfan<span class="dot">.</span>Studio</span>
+            <span class="brand-th">วาดฝัน สตูดิโอ</span>
+          </div>
+        </div>
+        <p class="footer-desc">
+          สตูดิโอขายรูปภาพดิจิทัลและใบงานการเรียนรู้ออนไลน์ สไตล์ Minimal & Warm อบอุ่น สบายตา พร้อมระบบจัดการหลังบ้านเชื่อมต่อ Supabase
+        </p>
+        <div class="footer-socials">
+          <a href="#" class="social-icon" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" class="social-icon" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" class="social-icon" title="Line OA"><i class="fa-brands fa-line"></i></a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">หมวดหมู่สินค้า</h4>
+        <ul class="footer-links">
+          <li><a href="#products" onclick="window.filterByMainType('image')">🎨 รูปภาพและอาร์ตเวิร์ก</a></li>
+          <li><a href="#products" onclick="window.filterByCategorySlug('wallpapers')">📱 วอลเปเปอร์มือถือ & iPad</a></li>
+          <li><a href="#products" onclick="window.filterByCategorySlug('stickers-icons')">✨ สติกเกอร์ & คลิปอาร์ต</a></li>
+          <li><a href="#products" onclick="window.filterByMainType('worksheet')">📄 ใบงานและแบบฝึกหัดเด็ก</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">ผู้ดูแลระบบ (Admin)</h4>
+        <ul class="footer-links">
+          <li><a href="admin.html" target="_blank"><i class="fa-solid fa-gauge"></i> หน้าแดชบอร์ดหลังบ้าน</a></li>
+          <li><a href="admin.html" target="_blank"><i class="fa-solid fa-plus-circle"></i> เพิ่มรูปภาพ & ใบงาน</a></li>
+          <li><a href="admin.html" target="_blank"><i class="fa-solid fa-cloud"></i> เชื่อมต่อฐานข้อมูล Supabase</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">ติดต่อเรา</h4>
+        <div class="contact-info">
+          <p><i class="fa-brands fa-line text-green"></i> LINE: @wadfanstudio</p>
+          <p><i class="fa-solid fa-envelope text-pink"></i> contact@wadfanstudio.com</p>
+          <p><i class="fa-solid fa-clock text-blue"></i> ทุกวัน 08:00 - 22:00 น.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="container footer-bottom-inner">
+        <p>&copy; 2026 Wadfan Studio (วาดฝัน สตูดิโอ). สงวนลิขสิทธิ์ทุกประการ</p>
+        <div class="footer-legal">
+          <a href="admin.html" target="_blank" style="color: var(--color-pink-primary); font-weight: 600;">Admin Management Portal</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Product Quick Preview & Variant Selector Modal -->
+  <div class="modal-backdrop" id="previewModal">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+      <div class="preview-modal-content" id="previewModalContent">
+        <!-- Injected dynamically via script.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Shopping Cart Drawer -->
+  <aside class="cart-drawer" id="cartDrawer" aria-label="ตะกร้าสินค้า">
+    <div class="cart-drawer-header">
+      <div class="drawer-title">
+        <i class="fa-solid fa-basket-shopping text-pink"></i>
+        <h3>ตะกร้าสินค้าของคุณ</h3>
+      </div>
+      <button class="cart-close-btn" id="cartCloseBtn">&times;</button>
+    </div>
+
+    <div class="cart-items" id="cartItemsContainer">
+      <!-- Items dynamically populated -->
+    </div>
+
+    <div class="cart-drawer-footer">
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>จำนวนรายการ</span>
+          <span id="cartTotalItemsCount">0 รายการ</span>
+        </div>
+        <div class="summary-row total-row">
+          <span>ยอดรวมทั้งหมด</span>
+          <span class="total-price-text" id="cartTotalPrice">฿0</span>
+        </div>
+      </div>
+      <button class="btn-primary checkout-btn" id="checkoutBtn" disabled>
+        <i class="fa-solid fa-lock"></i>
+        <span>ดำเนินการสั่งซื้อ & รับไฟล์</span>
+      </button>
+      <p class="cart-secure-text"><i class="fa-solid fa-shield-halved"></i> รับประกันดาวน์โหลดได้ทันที 100%</p>
+    </div>
+  </aside>
+  <div class="cart-backdrop" id="cartBackdrop"></div>
+
+  <!-- Checkout Demo Modal -->
+  <div class="modal-backdrop" id="checkoutModal">
+    <div class="modal-dialog checkout-dialog">
+      <button class="modal-close-btn" id="checkoutCloseBtn">&times;</button>
+      <div class="checkout-modal-body">
+        <div class="checkout-header-badge">
+          <i class="fa-solid fa-circle-check text-green"></i>
+          <h3>ยืนยันคำสั่งซื้อ</h3>
+        </div>
+        <p class="checkout-sub">กรอกข้อมูลเพื่อรับลิงก์ดาวน์โหลดไฟล์ภาพ / PDF ทันที</p>
+
+        <form id="checkoutForm" class="checkout-form" onsubmit="event.preventDefault(); window.handleOrderSubmit();">
+          <div class="form-group">
+            <label for="orderName">ชื่อ-นามสกุล / ชื่อผู้รับไฟล์</label>
+            <input type="text" id="orderName" required placeholder="เช่น วาดฝัน สตูดิโอ">
+          </div>
+          <div class="form-group">
+            <label for="orderEmail">อีเมลสำหรับจัดส่งไฟล์ (สำคัญมาก)</label>
+            <input type="email" id="orderEmail" required placeholder="example@email.com">
+          </div>
+
+          <div class="checkout-payment-box">
+            <h4><i class="fa-solid fa-qrcode text-blue"></i> ชำระเงินผ่าน PromptPay QR</h4>
+            <div class="promptpay-qr-mock">
+              <div class="qr-box">
+                <i class="fa-solid fa-qrcode qr-large-icon"></i>
+                <span>สแกนจ่าย</span>
+              </div>
+              <div class="qr-info">
+                <small>ยอดชำระสุทธิ</small>
+                <div class="checkout-due-amount" id="checkoutDueAmount">฿0</div>
+                <small>Wadfan Studio (พร้อมเพย์ 089-XXX-XXXX)</small>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary full-width btn-large">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>ยืนยันการชำระเงิน & รับไฟล์ทันที</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="supabase-client.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

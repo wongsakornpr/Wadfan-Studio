@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | Wadfan Studio (วาดฝัน สตูดิโอ)</title>
+  
+  <!-- Google Fonts: Prompt & Mali -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Admin Styles -->
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- Admin Layout Wrapper -->
+  <div class="admin-wrapper">
+
+    <!-- Top Admin Header -->
+    <header class="admin-header">
+      <div class="admin-header-inner">
+        <!-- Brand / Logo -->
+        <div class="admin-brand">
+          <div class="admin-logo-icon">
+            <i class="fa-solid fa-cloud"></i>
+            <i class="fa-solid fa-wand-magic-sparkles sparkle"></i>
+          </div>
+          <div>
+            <div class="admin-logo-title">Wadfan<span>.</span>Studio</div>
+            <div class="admin-logo-sub">ระบบจัดการหลังบ้าน (Admin Management)</div>
+          </div>
+        </div>
+
+        <!-- Connection Status & Quick Navigation -->
+        <div class="admin-header-actions">
+          <!-- Supabase Connection Indicator -->
+          <button class="supabase-status-pill" id="supabaseSettingsBtn" title="คลิกเพื่อตั้งค่าเชื่อมต่อ Supabase">
+            <span class="status-indicator-dot" id="dbStatusDot"></span>
+            <span id="dbStatusText">กำลังตรวจสอบฐานข้อมูล...</span>
+            <i class="fa-solid fa-gear"></i>
+          </button>
+
+          <!-- Visit Storefront Button -->
+          <a href="index.html" class="btn-storefront-link" target="_blank">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <span>ไปยังหน้าร้าน</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Admin Container -->
+    <main class="admin-main container">
+      
+      <!-- Welcome & Action Row -->
+      <section class="admin-top-bar">
+        <div>
+          <h1 class="page-title">จัดการสินค้า (รูปภาพ & ใบงาน)</h1>
+          <p class="page-desc">กำหนดขนาดรูปภาพ รูปแบบใบงาน และตั้งราคาแบบครบวงจร</p>
+        </div>
+        <div class="top-bar-buttons">
+          <button class="btn-secondary" id="openSqlModalBtn">
+            <i class="fa-solid fa-database"></i> สคริปต์ SQL Supabase
+          </button>
+          <button class="btn-primary" id="addNewProductBtn">
+            <i class="fa-solid fa-plus"></i> เพิ่มสินค้าใหม่
+          </button>
+        </div>
+      </section>
+
+      <!-- Stats Cards -->
+      <section class="admin-stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrap bg-pink-light">
+            <i class="fa-solid fa-boxes-stacked text-pink"></i>
+          </div>
+          <div>
+            <div class="stat-value" id="statTotalProducts">0</div>
+            <div class="stat-label">สินค้าทั้งหมด</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap bg-blue-light">
+            <i class="fa-solid fa-palette text-blue"></i>
+          </div>
+          <div>
+            <div class="stat-value" id="statTotalImages">0</div>
+            <div class="stat-label">รูปภาพดิจิทัล (Art)</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap bg-purple-light">
+            <i class="fa-solid fa-file-lines text-purple"></i>
+          </div>
+          <div>
+            <div class="stat-value" id="statTotalWorksheets">0</div>
+            <div class="stat-label">ใบงานการเรียนรู้</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap bg-yellow-light">
+            <i class="fa-solid fa-tags text-yellow-dark"></i>
+          </div>
+          <div>
+            <div class="stat-value" id="statTotalVariants">0</div>
+            <div class="stat-label">ขนาดและรูปแบบย่อย</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filter & Search Toolbar -->
+      <section class="admin-toolbar-card">
+        <div class="toolbar-left">
+          <!-- Type Filter Tabs -->
+          <div class="admin-filter-pills" id="adminFilterPills">
+            <button class="admin-pill active" data-type="all">ทั้งหมด</button>
+            <button class="admin-pill" data-type="image"><i class="fa-solid fa-palette"></i> รูปภาพดิจิทัล</button>
+            <button class="admin-pill" data-type="worksheet"><i class="fa-solid fa-book-open"></i> ใบงานการเรียนรู้</button>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <!-- Search Input -->
+          <div class="admin-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="adminSearchInput" placeholder="ค้นหาชื่อสินค้า หรือหมวดหมู่...">
+          </div>
+        </div>
+      </section>
+
+      <!-- Products Management Table -->
+      <section class="admin-table-card">
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">รูปสินค้า</th>
+                <th>ชื่อสินค้า & ข้อมูล</th>
+                <th>ประเภท</th>
+                <th>หมวดหมู่</th>
+                <th>ขนาดและตัวเลือกราคา</th>
+                <th>สถานะ</th>
+                <th style="text-align: right; width: 140px;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="adminProductsTableBody">
+              <!-- Dynamically populated via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ==============================================================================
+       Product Add / Edit Modal
+       ============================================================================== -->
+  <div class="modal-backdrop" id="productModal">
+    <div class="modal-dialog product-modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-pen-nib text-pink"></i>
+          <h2 class="modal-title" id="modalProductTitle">เพิ่มสินค้าใหม่</h2>
+        </div>
+        <button class="modal-close-btn" id="closeProductModalBtn">&times;</button>
+      </div>
+
+      <form id="productForm" class="modal-body">
+        <input type="hidden" id="formProductId">
+
+        <!-- 1. Product Type Selector (Image vs Worksheet) -->
+        <div class="form-section">
+          <label class="form-label required">ประเภทสินค้า</label>
+          <div class="type-selector-grid">
+            <label class="type-radio-card" id="typeImageCard">
+              <input type="radio" name="product_type" value="image" checked>
+              <div class="type-radio-content">
+                <i class="fa-solid fa-palette"></i>
+                <div>
+                  <strong>ขายรูปภาพดิจิทัล (Digital Art)</strong>
+                  <small>วอลเปเปอร์, ภาพประกอบ, ไอคอน, สติกเกอร์ (กำหนดขนาด S/M/L และสิทธิ์ได้)</small>
+                </div>
+              </div>
+            </label>
+
+            <label class="type-radio-card" id="typeWorksheetCard">
+              <input type="radio" name="product_type" value="worksheet">
+              <div class="type-radio-content">
+                <i class="fa-solid fa-file-lines"></i>
+                <div>
+                  <strong>ขายใบงานการเรียนรู้ (Worksheet)</strong>
+                  <small>แบบฝึกหัดเด็กปฐมวัย, ประถมฯ (กำหนดระดับชั้น, จำนวนหน้า, เฉลยได้)</small>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 2. Basic Information -->
+        <div class="form-section">
+          <h3 class="section-title-sm"><i class="fa-solid fa-circle-info"></i> ข้อมูลพื้นฐาน</h3>
+          
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="formTitle" class="form-label required">ชื่อสินค้า</label>
+              <input type="text" id="formTitle" required placeholder="เช่น ชุดภาพวาดเจ้ากระต่ายน้อย หรือ ชุดคัดลายมือ ก-ฮ">
+            </div>
+
+            <div class="form-group">
+              <label for="formCategory" class="form-label required">หมวดหมู่</label>
+              <select id="formCategory" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="formCoverUrl" class="form-label required">ลิงก์รูปภาพหน้าปก (Cover URL)</label>
+              <input type="url" id="formCoverUrl" required placeholder="https://images.unsplash.com/...">
+            </div>
+
+            <div class="form-group">
+              <label for="formTag" class="form-label">ป้าย Tag ติดสินค้า</label>
+              <select id="formTag">
+                <option value="ยอดนิยม">ยอดนิยม</option>
+                <option value="มาใหม่" selected>มาใหม่</option>
+                <option value="แนะนำ">แนะนำ</option>
+                <option value="แจกฟรี">แจกฟรี</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="formStatus" class="form-label">สถานะการแสดงผล</label>
+              <select id="formStatus">
+                <option value="active" selected>เผยแพร่ (Active)</option>
+                <option value="draft">ฉบับร่าง (Draft)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="formShortDesc" class="form-label">คำอธิบายสั้น (แสดงในการ์ดสินค้า)</label>
+            <input type="text" id="formShortDesc" placeholder="คำอธิบายสรุปสั้นๆ 1-2 บรรทัด">
+          </div>
+
+          <div class="form-group">
+            <label for="formFullDesc" class="form-label">รายละเอียดสินค้าฉบับเต็ม</label>
+            <textarea id="formFullDesc" rows="3" placeholder="อธิบายจุดเด่น รายละเอียดการใช้งาน หรือสิทธิ์การใช้งาน"></textarea>
+          </div>
+        </div>
+
+        <!-- 3. Dynamic Type-Specific Attributes -->
+        <!-- Image Specific Fields -->
+        <div class="form-section type-specific-box" id="imageFieldsBox">
+          <h3 class="section-title-sm"><i class="fa-solid fa-sliders"></i> คุณสมบัติเฉพาะของรูปภาพ</h3>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="formOrientation" class="form-label">สัดส่วนรูปภาพ</label>
+              <select id="formOrientation">
+                <option value="portrait">แนวตั้ง (Portrait)</option>
+                <option value="landscape">แนวนอน (Landscape)</option>
+                <option value="square">สี่เหลี่ยมจัตุรัส (Square)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="formResolution" class="form-label">ความละเอียดสูงสุด</label>
+              <input type="text" id="formResolution" placeholder="เช่น 4500 x 6000 px หรือ 4K UHD">
+            </div>
+
+            <div class="form-group">
+              <label for="formPalette" class="form-label">โทนสีหลัก (คั่นด้วยจุลภาค)</label>
+              <input type="text" id="formPalette" placeholder="เช่น #FFE3E8, #7BC5DC, #FEF3C7">
+            </div>
+          </div>
+        </div>
+
+        <!-- Worksheet Specific Fields -->
+        <div class="form-section type-specific-box" id="worksheetFieldsBox" style="display: none;">
+          <h3 class="section-title-sm"><i class="fa-solid fa-graduation-cap"></i> คุณสมบัติเฉพาะของใบงาน</h3>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="formGradeLevel" class="form-label">ระดับชั้นที่เหมาะสม</label>
+              <input type="text" id="formGradeLevel" placeholder="เช่น อนุบาล 2 - 3 หรือ ประถม 1">
+            </div>
+
+            <div class="form-group">
+              <label for="formTotalPages" class="form-label">จำนวนหน้าแบบฝึกหัด</label>
+              <input type="number" id="formTotalPages" min="1" placeholder="เช่น 30">
+            </div>
+
+            <div class="form-group">
+              <label for="formHasAnswerKey" class="form-label">ไฟล์เฉลย</label>
+              <select id="formHasAnswerKey">
+                <option value="true">มีไฟล์เฉลยในเล่ม</option>
+                <option value="false">ไม่มีไฟล์เฉลย</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Dynamic Variant & Pricing Manager -->
+        <div class="form-section">
+          <div class="section-header-row">
+            <div>
+              <h3 class="section-title-sm"><i class="fa-solid fa-tags"></i> กำหนดขนาด ตัวเลือก และราคา (Variants)</h3>
+              <p class="section-subtitle-sm">เพิ่มขนาดรูปภาพที่แตกต่างกัน หรือชุดแพ็กเกจใบงานพร้อมกำหนดราคาของแต่ละขนาด</p>
+            </div>
+            <div class="preset-buttons">
+              <button type="button" class="btn-preset" id="applyPresetBtn">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> ใส่ขนาดมาตรฐานอัตโนมัติ
+              </button>
+              <button type="button" class="btn-secondary btn-sm" id="addVariantRowBtn">
+                <i class="fa-solid fa-plus"></i> เพิ่มตัวเลือก
+              </button>
+            </div>
+          </div>
+
+          <!-- Variants Table/List Container -->
+          <div class="variants-container" id="variantsContainer">
+            <!-- Dynamic Variant Rows -->
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelModalBtn">ยกเลิก</button>
+          <button type="submit" class="btn-primary" id="saveProductBtn">
+            <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลสินค้า
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ==============================================================================
+       Supabase Settings Modal
+       ============================================================================== -->
+  <div class="modal-backdrop" id="supabaseModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-cloud text-blue"></i>
+          <h2 class="modal-title">ตั้งค่าการเชื่อมต่อฐานข้อมูล Supabase</h2>
+        </div>
+        <button class="modal-close-btn" id="closeSupabaseModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc">
+          นำ <strong>Project URL</strong> และ <strong>Anon Public API Key</strong> จากหน้า Dashboard ของ Supabase 
+          (Settings &gt; API) มากรอกที่นี่ เพื่อบันทึกข้อมูลจริงเข้าสู่ระบบคลาวด์ของคุณ
+        </p>
+
+        <div class="form-group">
+          <label for="supabaseUrlInput" class="form-label required">Supabase Project URL</label>
+          <input type="url" id="supabaseUrlInput" placeholder="https://xxxxxxxxxxxxxxxx.supabase.co">
+        </div>
+
+        <div class="form-group">
+          <label for="supabaseKeyInput" class="form-label required">Supabase Anon Public API Key</label>
+          <input type="text" id="supabaseKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        </div>
+
+        <div class="connection-test-result" id="connectionTestResult" style="display: none;"></div>
+
+        <div class="supabase-guide-box">
+          <h4><i class="fa-solid fa-lightbulb text-yellow-dark"></i> วิธีติดตั้งตาราง (SQL Script):</h4>
+          <p>หากคุณเพิ่งสร้างโปรเจกต์ Supabase ใหม่ อย่าลืมกดเปิดดู <strong>"สคริปต์ SQL Supabase"</strong> แล้ว Copy ไปวางในเมนู <strong>SQL Editor</strong> บนเว็บ Supabase แล้วกด <strong>Run</strong> หนึ่งครั้ง เพื่อสร้างตารางสินค้าและตัวเลือกขนาดครับ</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="testConnectionBtn">
+          <i class="fa-solid fa-plug"></i> ทดสอบการเชื่อมต่อ
+        </button>
+        <button type="button" class="btn-primary" id="saveSupabaseConfigBtn">
+          <i class="fa-solid fa-check"></i> บันทึกการเชื่อมต่อ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================================================================
+       SQL Schema Viewer Modal
+       ============================================================================== -->
+  <div class="modal-backdrop" id="sqlModal">
+    <div class="modal-dialog sql-modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-terminal text-blue"></i>
+          <h2 class="modal-title">สคริปต์ SQL สำหรับสร้างตารางบน Supabase</h2>
+        </div>
+        <button class="modal-close-btn" id="closeSqlModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc">คัดลอกโค้ด SQL ด้านล่างนี้ ไปวางในเมนู <strong>SQL Editor &gt; New query</strong> บน Supabase Dashboard แล้วกดปุ่ม <strong>Run</strong></p>
+        
+        <div class="code-container">
+          <button class="btn-copy-code" id="copySqlBtn"><i class="fa-regular fa-copy"></i> คัดลอก SQL ทั้งหมด</button>
+          <pre><code id="sqlCodeBlock">-- กำลังโหลดไฟล์ SQL...</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="adminToastContainer"></div>
+
+  <!-- Data Provider & Admin Scripts -->
+  <script src="supabase-client.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
