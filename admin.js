@@ -90,7 +90,31 @@ document.addEventListener("DOMContentLoaded", async () => {
 // 2. Data Loading & Stats
 // ==============================================================================
 async function loadCategories() {
-  allCategories = await window.wadfanData.getCategories();
+  try {
+    allCategories = await window.wadfanData.getCategories();
+
+    if (
+      window.wadfanData.isSupabaseConnected &&
+      allCategories.length === 0
+    ) {
+      console.warn(
+        "ไม่พบ Category ใน Supabase Database"
+      );
+    }
+
+  } catch (err) {
+    allCategories = [];
+
+    console.error(
+      "Load Categories Error:",
+      err
+    );
+
+    showAdminToast(
+      `โหลดหมวดหมู่ไม่สำเร็จ: ${err.message}`,
+      "error"
+    );
+  }
 }
 
 async function refreshProductsTable() {
