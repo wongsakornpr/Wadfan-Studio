@@ -510,9 +510,9 @@
 
   <!-- Checkout Modal (With Customer Image Upload for Custom Art) -->
   <div class="modal-backdrop" id="checkoutModal">
-    <div class="modal-dialog checkout-dialog" style="position: relative; overflow: hidden;">
+    <div class="modal-dialog checkout-dialog" style="position: relative; max-height: 90vh; overflow-y: auto;">
       <!-- Loading Overlay (Shown during order processing / upload) -->
-      <div id="checkoutLoadingOverlay" style="display: none; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.96); z-index: 100; border-radius: 20px; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; backdrop-filter: blur(5px);">
+      <div id="checkoutLoadingOverlay" style="display: none; position: absolute; inset: 0; min-height: 100%; background: rgba(255, 255, 255, 0.96); z-index: 100; border-radius: 20px; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; backdrop-filter: blur(5px);">
         <div style="font-size: 3rem; color: #FF758F; margin-bottom: 16px;">
           <i class="fa-solid fa-circle-notch fa-spin"></i>
         </div>

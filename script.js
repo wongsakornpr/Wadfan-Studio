@@ -583,7 +583,11 @@ function openCheckoutModal() {
   if (slipUploadPreview) slipUploadPreview.style.display = "none";
   if (slipDropzoneText) slipDropzoneText.textContent = "คลิกเพื่อแนบสลิปการโอนเงิน (JPG, PNG)";
 
-  if (checkoutModal) checkoutModal.classList.add("open");
+  if (checkoutModal) {
+    const dialog = checkoutModal.querySelector(".modal-dialog");
+    if (dialog) dialog.scrollTop = 0;
+    checkoutModal.classList.add("open");
+  }
 }
 
 function closeCheckoutModal() {
@@ -730,6 +734,8 @@ window.handleOrderSubmit = async function () {
   }
   if (loadingOverlay) {
     loadingOverlay.style.display = "flex";
+    const dialog = document.querySelector("#checkoutModal .modal-dialog");
+    if (dialog) dialog.scrollTop = 0;
   }
 
   try {

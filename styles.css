@@ -2030,6 +2030,8 @@ ul {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-backdrop.open {
@@ -2044,10 +2046,30 @@ ul {
   width: 100%;
   position: relative;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow-y: auto !important;
+  margin: auto;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   transform: translateY(20px) scale(0.96);
   transition: transform 0.3s ease;
+  scroll-behavior: smooth;
+}
+
+.modal-dialog::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-dialog::-webkit-scrollbar-track {
+  background: #F8FAFC;
+  border-radius: 8px;
+}
+
+.modal-dialog::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 8px;
+}
+
+.modal-dialog::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }
 
 .modal-backdrop.open .modal-dialog {
@@ -2339,7 +2361,10 @@ ul {
    Checkout Modal & Form
    ========================================================================== */
 .checkout-dialog {
-  max-width: 520px;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto !important;
+  margin: auto;
 }
 
 .checkout-modal-body {
