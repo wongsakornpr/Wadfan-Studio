@@ -36,6 +36,7 @@ const supabaseModal = document.getElementById("supabaseModal");
 const closeSupabaseModalBtn = document.getElementById("closeSupabaseModalBtn");
 const supabaseUrlInput = document.getElementById("supabaseUrlInput");
 const supabaseKeyInput = document.getElementById("supabaseKeyInput");
+const googleScriptUrlInput = document.getElementById("googleScriptUrlInput");
 const testConnectionBtn = document.getElementById("testConnectionBtn");
 const saveSupabaseConfigBtn = document.getElementById("saveSupabaseConfigBtn");
 const connectionTestResult = document.getElementById("connectionTestResult");
@@ -872,6 +873,18 @@ window.openOrderDetailModal = function (orderId) {
       <div class="order-customer-box">
         <h3 class="order-box-title"><i class="fa-solid fa-receipt text-blue"></i> ข้อมูลคำสั่งซื้อ: ${order.order_number}</h3>
         
+        ${
+          order.google_drive_folder_url
+            ? `
+          <div style="margin-bottom: 16px;">
+            <a href="${order.google_drive_folder_url}" target="_blank" class="btn-primary full-width" style="background: linear-gradient(135deg, #0F9D58, #34A853); color: #FFF; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 16px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(15, 157, 88, 0.25);">
+              <i class="fa-brands fa-google-drive" style="font-size: 1.25rem;"></i> เปิดโฟลเดอร์ Google Drive ของออเดอร์นี้
+            </a>
+          </div>
+        `
+            : ''
+        }
+
         <p style="font-size: 0.9rem; margin-bottom: 6px;"><strong>ลูกค้า:</strong> ${order.customer_name}</p>
         <p style="font-size: 0.9rem; margin-bottom: 6px;"><strong>อีเมล:</strong> ${order.customer_email}</p>
         <p style="font-size: 0.9rem; margin-bottom: 14px;"><strong>เบอร์โทร:</strong> ${order.customer_phone || '-'}</p>
@@ -885,6 +898,48 @@ window.openOrderDetailModal = function (orderId) {
           <span style="color: #FF758F;">฿${order.total_amount}</span>
         </div>
 
+        <!-- Payment Slip Section (หลักฐานการโอนเงิน) -->
+        ${
+          order.payment_slip_url
+            ? `
+          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #E2E8F0;">
+            <h4 style="font-size: 0.92rem; color: #15803D; margin-bottom: 10px;">
+              <i class="fa-solid fa-file-invoice-dollar text-green"></i> หลักฐานการโอนเงิน (สลิป PromptPay):
+            </h4>
+            <div style="background: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 12px; padding: 12px; display: flex; gap: 14px; align-items: center;">
+              <div style="position: relative; width: 80px; height: 80px; flex-shrink: 0; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1px solid #86EFAC;" onclick="window.openImageFull('${order.payment_slip_url}')" title="คลิกเพื่อดูสลิปขนาดเต็ม">
+                <img src="${order.payment_slip_url}" style="width: 100%; height: 100%; object-fit: cover;">
+                <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.65rem; padding: 1px 4px; border-radius: 4px;"><i class="fa-solid fa-magnifying-glass-plus"></i> ขยาย</span>
+              </div>
+              <div style="flex-grow: 1;">
+                <div style="font-weight: 600; color: #166534; font-size: 0.95rem;">
+                  <i class="fa-solid fa-circle-check text-green"></i> แนบสลิปโอนเงินเรียบร้อย
+                </div>
+                <div style="font-size: 0.78rem; color: #64748B; margin-top: 3px;">
+                  ยอดที่ต้องชำระ: <strong>฿${order.total_amount}</strong>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn-primary btn-sm" onclick="window.openImageFull('${order.payment_slip_url}')" style="background: #16A34A; font-size: 0.8rem; padding: 5px 12px;">
+                    <i class="fa-solid fa-eye"></i> ตรวจสอบสลิปขนาดเต็ม
+                  </button>
+                  <a href="${order.payment_slip_url}" download="slip-${order.order_number}.jpg" class="btn-secondary btn-sm" style="font-size: 0.8rem; padding: 5px 12px;">
+                    <i class="fa-solid fa-download"></i> ดาวน์โหลดสลิป
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+            : order.total_amount > 0
+            ? `
+          <div style="margin-top: 14px; padding: 10px; background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; font-size: 0.82rem; color: #92400E;">
+            <i class="fa-solid fa-circle-info"></i> ลูกค้าไม่ได้แนบสลิปโอนเงินผ่านหน้าเว็บ
+          </div>
+        `
+            : ''
+        }
+
+        <!-- Customer Uploaded Files (รูปภาพงานสั่งทำ) -->
         ${
           order.customer_uploaded_files && order.customer_uploaded_files.length > 0
             ? `
@@ -1319,6 +1374,9 @@ function openSupabaseModal() {
   const config = window.wadfanData.getConfig();
   supabaseUrlInput.value = config.url;
   supabaseKeyInput.value = config.key;
+  if (googleScriptUrlInput) {
+    googleScriptUrlInput.value = window.wadfanData.getGoogleScriptUrl();
+  }
   connectionTestResult.style.display = "none";
   supabaseModal.classList.add("open");
 }
@@ -1352,9 +1410,11 @@ async function handleTestConnection() {
 async function handleSaveSupabaseConfig() {
   const url = supabaseUrlInput.value.trim();
   const key = supabaseKeyInput.value.trim();
+  const gasUrl = googleScriptUrlInput ? googleScriptUrlInput.value.trim() : "";
 
   window.wadfanData.saveConfig(url, key);
-  showAdminToast("บันทึกการตั้งค่า Supabase เรียบร้อยแล้ว", "success");
+  window.wadfanData.setGoogleScriptUrl(gasUrl);
+  showAdminToast("บันทึกการตั้งค่า Supabase & Google Drive เรียบร้อยแล้ว", "success");
   updateConnectionStatusUI();
   supabaseModal.classList.remove("open");
   await refreshProductsTable();

@@ -608,6 +608,16 @@
           <input type="text" id="supabaseKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
         </div>
 
+        <div class="form-group" style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed #CBD5E1;">
+          <label for="googleScriptUrlInput" class="form-label" style="color: #0F9D58; font-weight: 600;">
+            <i class="fa-brands fa-google-drive"></i> Google Apps Script Web App URL (สำหรับบันทึกรูปลง Drive)
+          </label>
+          <input type="url" id="googleScriptUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+          <small style="color: #64748B; font-size: 0.8rem; display: block; margin-top: 4px;">
+            นำโค้ดจากไฟล์ <code>google-drive-uploader.gs</code> ไปวางใน <a href="https://script.google.com" target="_blank" style="color: #0284C7; font-weight: 600;">script.google.com</a> ภายใต้บัญชี wongsakorn.pr1996@gmail.com แล้ว Deploy เป็น Web App (ใครก็ได้เข้าถึงได้)
+          </small>
+        </div>
+
         <div class="connection-test-result" id="connectionTestResult" style="display: none;"></div>
 
         <div class="supabase-guide-box">

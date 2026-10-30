@@ -88,6 +88,7 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS tracking_number TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS email_notification_log JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS google_drive_folder_url TEXT;
 
 -- ปลดล็อกและอัปเดต Check Constraint ของ payment_status เพื่อให้รองรับสถานะ 'shipped' (จัดส่งพัสดุแล้ว)
 ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_payment_status_check;

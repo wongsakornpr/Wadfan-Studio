@@ -92,7 +92,7 @@ export default async function handler(req, res) {
       </div>
     `;
 
-    const resendRes = await fetch("https://api.resend.com/emails", {
+    let resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
@@ -106,7 +106,37 @@ export default async function handler(req, res) {
       })
     });
 
-    const resendData = await resendRes.json();
+    let resendData = await resendRes.json();
+
+    // หาก Resend แจ้งเตือนข้อจำกัด Free Sandbox (ส่งหาคนอื่นไม่ได้นอกจากเจ้าของบัญชี wongsakorn.pr1996@gmail.com)
+    if (!resendRes.ok && resendData.message && resendData.message.includes("own email address")) {
+      console.warn("Resend test mode detected: forwarding email to owner wongsakorn.pr1996@gmail.com instead...");
+
+      const adminFallbackRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: "Wadfan Studio <onboarding@resend.dev>",
+          to: ["wongsakorn.pr1996@gmail.com"],
+          subject: `[ส่งหาลูกค้า: ${recipient}] ${subject}`,
+          html:
+            `<div style="background:#FFFBEB;padding:12px;border:1px solid #FCD34D;border-radius:8px;margin-bottom:16px;font-size:14px;color:#92400E;"><strong>📢 แจ้งเตือนแอดมิน:</strong> อีเมลนี้เป็นสำเนาที่ส่งให้ลูกค้า <code>${recipient}</code> แต่เนื่องจากโดเมน Resend ของคุณอยู่ในช่วงทดสอบ (ยังไม่ได้ผูกชื่อโดเมนตัวเอง) ระบบจึงส่งสำเนาแจ้งเตือนมาที่ Gmail ของคุณแทนครับ</div>` +
+            emailHtml
+        })
+      });
+
+      if (adminFallbackRes.ok) {
+        return res.status(200).json({
+          success: true,
+          forwardedToAdmin: true,
+          message: "ส่งเข้า Gmail แอดมิน wongsakorn.pr1996@gmail.com เรียบร้อยแล้ว (Resend Test Mode)"
+        });
+      }
+    }
+
     if (!resendRes.ok) {
       throw new Error(resendData.message || "Failed to send email via Resend");
     }

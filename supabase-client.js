@@ -539,6 +539,18 @@ class WadfanDataProvider {
     return { success: true };
   }
 
+  getGoogleScriptUrl() {
+    return localStorage.getItem("wadfan_google_script_url") || "";
+  }
+
+  setGoogleScriptUrl(url) {
+    if (url) {
+      localStorage.setItem("wadfan_google_script_url", url.trim());
+    } else {
+      localStorage.removeItem("wadfan_google_script_url");
+    }
+  }
+
   // ==============================================================================
   // 3. Orders Management (ระบบสั่งซื้อ, ยืนยันชำระเงิน, ส่งลิงก์ Google Drive, ส่งเลขพัสดุ)
   // ==============================================================================
@@ -552,51 +564,75 @@ class WadfanDataProvider {
     const isFree = orderData.total_amount === 0;
     const initialStatus = isFree ? "paid" : "pending";
 
-    // จัดการไฟล์ที่ลูกค้าอัปโหลด: อัปโหลดเข้า Supabase Storage หรือบันทึก DataURL คมชัดสูง
-    const googleDriveFolderPath = `Google Drive / Wadfan_Orders / ${orderNumber} /`;
+    // จัดการไฟล์ทั้งหมดที่จะส่งขึ้น Google Drive (รูปภาพ + สลิปโอนเงิน)
+    const filesToDrive = [];
+    let slipUrl = orderData.payment_slip_file ? (orderData.payment_slip_file.dataUrl || "") : "";
+    let googleDriveFolderUrl = "";
+
+    if (orderData.payment_slip_file && orderData.payment_slip_file.dataUrl) {
+      filesToDrive.push({
+        name: `Slip_${orderNumber}_${orderData.payment_slip_file.name}`,
+        type: "payment_slip",
+        mimeType: orderData.payment_slip_file.type || "image/jpeg",
+        base64: orderData.payment_slip_file.dataUrl
+      });
+    }
+
     const formattedUploadedFiles = [];
-
     for (const file of orderData.uploaded_files || []) {
-      let fileUrl = file.dataUrl || "";
-
-      // ถ้าเชื่อมต่อ Supabase ลองอัปโหลดเข้า Storage Bucket "customer-uploads"
-      if (this.isSupabaseConnected && file.file_raw) {
-        try {
-          // พยายามสร้าง bucket อัตโนมัติเผื่อยังไม่ได้รัน SQL
-          try {
-            await this.supabaseClient.storage.createBucket("customer-uploads", { public: true });
-          } catch (e) {
-            // ละเว้นหาก bucket มีอยู่แล้ว
-          }
-
-          const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const storagePath = `${orderNumber}/${Date.now()}_${sanitizedFileName}`;
-          
-          const { data: uploadData, error: uploadErr } = await this.supabaseClient.storage
-            .from("customer-uploads")
-            .upload(storagePath, file.file_raw, { upsert: true });
-
-          if (!uploadErr) {
-            const { data: publicUrlData } = this.supabaseClient.storage
-              .from("customer-uploads")
-              .getPublicUrl(storagePath);
-            if (publicUrlData && publicUrlData.publicUrl) {
-              fileUrl = publicUrlData.publicUrl;
-            }
-          } else {
-            console.warn("Storage upload warning, falling back to dataUrl:", uploadErr.message);
-          }
-        } catch (storageException) {
-          console.warn("Supabase Storage error:", storageException);
-        }
+      if (file.dataUrl) {
+        filesToDrive.push({
+          name: file.name,
+          type: "customer_image",
+          mimeType: file.type || "image/png",
+          base64: file.dataUrl
+        });
       }
 
       formattedUploadedFiles.push({
         file_name: file.name,
         file_size: file.size ? (file.size / 1024 / 1024).toFixed(2) + " MB" : "Custom File",
-        file_url: fileUrl, // ลิงก์ดาวน์โหลด/พรีวิวรูปภาพจริง
-        google_drive_path: `${googleDriveFolderPath}${file.name}`
+        file_url: file.dataUrl || "", // พรีวิวรูปภาพ
+        google_drive_path: `Google Drive / Wadfan Studio Orders / ${orderNumber} - ${orderData.customer_name} / ${file.name}`
       });
+    }
+
+    // ส่งไฟล์ขึ้น Google Drive ผ่าน Google Apps Script Web App (ถ้ามีการตั้งค่า URL ไว้)
+    const gasUrl = this.getGoogleScriptUrl();
+    if (gasUrl && filesToDrive.length > 0) {
+      try {
+        const driveRes = await fetch("/api/upload-drive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_number: orderNumber,
+            customer_name: orderData.customer_name,
+            files: filesToDrive,
+            script_url: gasUrl
+          })
+        });
+
+        const driveData = await driveRes.json();
+        if (driveData && driveData.success) {
+          googleDriveFolderUrl = driveData.folder_url || "";
+          
+          if (driveData.files) {
+            const slipUploaded = driveData.files.find((f) => f.type === "payment_slip");
+            if (slipUploaded) {
+              slipUrl = slipUploaded.viewUrl || slipUrl;
+            }
+
+            formattedUploadedFiles.forEach((uf) => {
+              const matched = driveData.files.find((f) => f.name === uf.file_name);
+              if (matched && matched.viewUrl) {
+                uf.file_url = matched.viewUrl;
+              }
+            });
+          }
+        }
+      } catch (gasErr) {
+        console.warn("Google Drive Upload fallback:", gasErr);
+      }
     }
 
     // บันทึก Log การส่งอีเมลทันทีสำหรับสินค้าฟรี
@@ -620,6 +656,8 @@ class WadfanDataProvider {
       total_amount: parseFloat(orderData.total_amount || 0),
       payment_status: initialStatus,
       payment_method: "promptpay",
+      payment_slip_url: slipUrl || null,
+      google_drive_folder_url: googleDriveFolderUrl || null,
       customer_uploaded_files: formattedUploadedFiles,
       email_notification_log: emailLog,
       created_at: new Date().toISOString(),

@@ -564,6 +564,22 @@
             </div>
           </div>
 
+          <!-- Payment Slip Upload Box (แนบสลิปโอนเงิน) -->
+          <div class="form-group slip-upload-group" id="checkoutSlipUploadBox">
+            <label for="customerSlipFile" class="form-label" style="font-weight: 600; color: #1E293B;">
+              <i class="fa-solid fa-receipt text-green"></i> แนบหลักฐานการโอนเงิน (สลิปโอนเงิน / PromptPay)
+            </label>
+            <div class="upload-dropzone" id="slipDropzone" style="border: 1.5px dashed #86EFAC; background: #F0FDF4; border-radius: 12px; padding: 16px; cursor: pointer;">
+              <input type="file" id="customerSlipFile" accept="image/*" style="display: none;">
+              <div class="dropzone-inner" onclick="document.getElementById('customerSlipFile').click();" style="text-align: center;">
+                <i class="fa-solid fa-file-invoice-dollar" style="font-size: 2rem; color: #16A34A; margin-bottom: 6px; display: block;"></i>
+                <div class="dropzone-text" id="slipDropzoneText" style="font-weight: 600; color: #15803D;">คลิกเพื่อแนบสลิปการโอนเงิน (JPG, PNG)</div>
+                <small class="text-muted" style="font-size: 0.8rem; color: #64748B;">ไฟล์สลิปจะถูกบันทึกเข้า Google Drive ตามเลขออเดอร์โดยตรง</small>
+              </div>
+            </div>
+            <div id="slipUploadPreview" class="file-upload-preview" style="display: none; margin-top: 10px;"></div>
+          </div>
+
           <button type="submit" class="btn-primary full-width btn-large" id="confirmOrderSubmitBtn">
             <i class="fa-solid fa-paper-plane"></i>
             <span>ยืนยันการสั่งซื้อ & ชำระเงิน</span>

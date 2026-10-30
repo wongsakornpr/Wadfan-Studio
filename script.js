@@ -13,6 +13,7 @@ let currentSearch = "";
 let selectedVariantForModal = null;
 let currentPreviewProduct = null;
 let customerAttachedFile = null;
+let customerSlipFile = null;
 
 // Cart State (stored in localStorage)
 let shoppingCart = [];
@@ -53,6 +54,10 @@ const checkoutImageUploadBox = document.getElementById("checkoutImageUploadBox")
 const customerImageFileInput = document.getElementById("customerImageFile");
 const fileUploadPreview = document.getElementById("fileUploadPreview");
 const dropzoneText = document.getElementById("dropzoneText");
+const checkoutSlipUploadBox = document.getElementById("checkoutSlipUploadBox");
+const customerSlipFileInput = document.getElementById("customerSlipFile");
+const slipUploadPreview = document.getElementById("slipUploadPreview");
+const slipDropzoneText = document.getElementById("slipDropzoneText");
 const orderSuccessModal = document.getElementById("orderSuccessModal");
 const orderSuccessContent = document.getElementById("orderSuccessContent");
 
@@ -523,10 +528,22 @@ function openCheckoutModal() {
     checkoutImageUploadBox.style.display = hasImage ? "block" : "none";
   }
 
-  // Reset file input
+  // Toggle Slip upload box based on total amount
+  const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
+  const isFree = totalAmount === 0;
+  if (checkoutSlipUploadBox) {
+    checkoutSlipUploadBox.style.display = isFree ? "none" : "block";
+  }
+
+  // Reset file inputs
   customerAttachedFile = null;
   if (fileUploadPreview) fileUploadPreview.style.display = "none";
   if (dropzoneText) dropzoneText.textContent = "คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)";
+
+  customerSlipFile = null;
+  if (customerSlipFileInput) customerSlipFileInput.value = "";
+  if (slipUploadPreview) slipUploadPreview.style.display = "none";
+  if (slipDropzoneText) slipDropzoneText.textContent = "คลิกเพื่อแนบสลิปการโอนเงิน (JPG, PNG)";
 
   if (checkoutModal) checkoutModal.classList.add("open");
 }
@@ -562,6 +579,33 @@ window.clearAttachedFile = function () {
   if (dropzoneText) dropzoneText.textContent = "คลิกเพื่อเลือกไฟล์รูปภาพจากเครื่องของคุณ (JPG, PNG)";
 };
 
+// Payment Slip Attachment Handler
+if (customerSlipFileInput) {
+  customerSlipFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      customerSlipFile = file;
+      if (slipDropzoneText) slipDropzoneText.textContent = `สลิปที่เลือก: ${file.name}`;
+      if (slipUploadPreview) {
+        slipUploadPreview.style.display = "block";
+        slipUploadPreview.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #DCFCE7; border: 1px solid #86EFAC; border-radius: 8px; margin-top: 8px; font-size: 0.85rem;">
+            <span><i class="fa-solid fa-file-invoice-dollar text-green"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+            <button type="button" style="color: #EF4444; font-size: 1.2rem; cursor: pointer; border: none; background: transparent;" onclick="window.clearSlipFile()">&times;</button>
+          </div>
+        `;
+      }
+    }
+  });
+}
+
+window.clearSlipFile = function () {
+  customerSlipFile = null;
+  if (customerSlipFileInput) customerSlipFileInput.value = "";
+  if (slipUploadPreview) slipUploadPreview.style.display = "none";
+  if (slipDropzoneText) slipDropzoneText.textContent = "คลิกเพื่อแนบสลิปการโอนเงิน (JPG, PNG)";
+};
+
 window.handleOrderSubmit = async function () {
   const name = document.getElementById("orderName").value.trim();
   const email = document.getElementById("orderEmail").value.trim();
@@ -569,6 +613,25 @@ window.handleOrderSubmit = async function () {
 
   const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
   const isFree = totalAmount === 0;
+
+  // อ่านข้อมูลสลิปโอนเงิน (ถ้ามี)
+  let slipData = null;
+  if (customerSlipFile) {
+    const slipDataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(customerSlipFile);
+    });
+
+    slipData = {
+      name: customerSlipFile.name,
+      size: customerSlipFile.size,
+      type: customerSlipFile.type,
+      dataUrl: slipDataUrl,
+      file_raw: customerSlipFile
+    };
+  }
 
   // Prepare Uploaded Files
   const uploadedFiles = [];
@@ -604,6 +667,7 @@ window.handleOrderSubmit = async function () {
     customer_email: email,
     customer_phone: phone,
     total_amount: totalAmount,
+    payment_slip_file: slipData,
     uploaded_files: uploadedFiles
   };
 
