@@ -11,9 +11,9 @@
 // เมื่อใส่ค่าที่นี่ ทั้งมือถือ แท็บเล็ต และลูกค้าทุกคนที่เข้าเว็บจะเชื่อมต่อ Supabase ได้ทันที 100%
 // ==============================================================================
 const DEFAULT_SYSTEM_CONFIG = {
-  supabaseUrl: "https://cgpmogvkmgdmshezobzg.supabase.co", // Supabase Project URL ของคุณ
-  supabaseAnonKey: "", // นำ Supabase Anon Key (ขึ้นต้นด้วย eyJ...) มาใส่ที่นี่ (ดูวิธีได้ในหน้า Admin > ตั้งค่า Supabase)
-  googleScriptUrl: "https://script.google.com/macros/s/AKfycbzvXAdPtwYWVJJfo6n2ABidmObkwLe_VTzpTpyEJl1U-Q5fhoyufQOAeqjHO_v_qYwl/exec" // Google Apps Script สำหรับอัปโหลดรูปลง Drive
+  supabaseUrl: "https://cgpmogvkmgdmshezobzg.supabase.co",
+  supabaseAnonKey: "sb_publishable_VGJvQHtMMnkMuy1KUneqJQ_6Pj6sqYA",
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbzI2GHHfsi7k2ZBa0wdcEkjBJn0qlLaO4adE4QWBzu0jutKidZClQKoqyPWLoTadmZX/exec"
 };
 
 // หมวดหมู่เริ่มต้น (Fallback)

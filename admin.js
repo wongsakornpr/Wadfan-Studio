@@ -1557,8 +1557,8 @@ function updateSystemConfigCodePreview() {
   const preview = document.getElementById("systemConfigPreview");
   if (!preview) return;
   const url = (supabaseUrlInput.value || "").trim() || "https://cgpmogvkmgdmshezobzg.supabase.co";
-  const key = (supabaseKeyInput.value || "").trim();
-  const gas = (googleScriptUrlInput && googleScriptUrlInput.value ? googleScriptUrlInput.value.trim() : "") || "https://script.google.com/macros/s/AKfycbzvXAdPtwYWVJJfo6n2ABidmObkwLe_VTzpTpyEJl1U-Q5fhoyufQOAeqjHO_v_qYwl/exec";
+  const key = (supabaseKeyInput.value || "").trim() || "sb_publishable_VGJvQHtMMnkMuy1KUneqJQ_6Pj6sqYA";
+  const gas = (googleScriptUrlInput && googleScriptUrlInput.value ? googleScriptUrlInput.value.trim() : "") || "https://script.google.com/macros/s/AKfycbzI2GHHfsi7k2ZBa0wdcEkjBJn0qlLaO4adE4QWBzu0jutKidZClQKoqyPWLoTadmZX/exec";
 
   const code = `const DEFAULT_SYSTEM_CONFIG = {\n  supabaseUrl: "${url}",\n  supabaseAnonKey: "${key}",\n  googleScriptUrl: "${gas}"\n};`;
   preview.textContent = code;
