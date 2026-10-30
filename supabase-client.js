@@ -771,16 +771,30 @@ class WadfanDataProvider {
 
     if (this.isSupabaseConnected) {
       try {
-        const { error } = await this.supabaseClient
+        let updatePayload = {
+          payment_status: "shipped",
+          tracking_carrier: carrier,
+          tracking_number: trackingNumber,
+          shipped_at: new Date().toISOString(),
+          email_notification_log: updatedLogs
+        };
+
+        let { error } = await this.supabaseClient
           .from("orders")
-          .update({
-            payment_status: "shipped",
-            tracking_carrier: carrier,
-            tracking_number: trackingNumber,
-            shipped_at: new Date().toISOString(),
-            email_notification_log: updatedLogs
-          })
+          .update(updatePayload)
           .eq("id", orderId);
+
+        // กรณี PostgreSQL ยังติด Check Constraint เดิมที่ยังไม่รวม 'shipped'
+        if (error && (error.message.includes("orders_payment_status_check") || error.code === "23514")) {
+          console.warn("DB Check Constraint detected, falling back to payment_status: 'paid' while keeping tracking details...");
+          updatePayload.payment_status = "paid";
+          const retry = await this.supabaseClient
+            .from("orders")
+            .update(updatePayload)
+            .eq("id", orderId);
+          error = retry.error;
+        }
+
         if (error) throw error;
         return { success: true, emailSent: emailSentItem };
       } catch (err) {

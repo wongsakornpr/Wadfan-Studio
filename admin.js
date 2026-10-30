@@ -682,7 +682,12 @@ function renderOrdersTable() {
   if (!adminOrdersTableBody) return;
 
   const filtered = allOrders.filter((o) => {
-    const matchesStatus = currentOrderStatusFilter === "all" || o.payment_status === currentOrderStatusFilter;
+    const isShippedOrder = o.payment_status === "shipped" || (o.tracking_number && o.tracking_number.trim() !== "");
+    const matchesStatus =
+      currentOrderStatusFilter === "all" ||
+      (currentOrderStatusFilter === "shipped" && isShippedOrder) ||
+      (currentOrderStatusFilter === "paid" && o.payment_status === "paid" && !isShippedOrder) ||
+      (currentOrderStatusFilter === o.payment_status);
     const q = orderSearchQuery.toLowerCase().trim();
     const matchesSearch =
       q === "" ||
@@ -708,10 +713,10 @@ function renderOrdersTable() {
   adminOrdersTableBody.innerHTML = filtered
     .map((o) => {
       let statusBadge = "";
-      if (o.payment_status === "paid") {
-        statusBadge = `<span class="status-badge status-paid"><i class="fa-solid fa-circle-check"></i> ชำระแล้ว / ส่งไฟล์แล้ว</span>`;
-      } else if (o.payment_status === "shipped") {
+      if (o.payment_status === "shipped" || (o.tracking_number && o.tracking_number.trim() !== "")) {
         statusBadge = `<span class="status-badge status-shipped"><i class="fa-solid fa-truck"></i> จัดส่งแล้ว (${o.tracking_carrier || 'พัสดุ'})</span>`;
+      } else if (o.payment_status === "paid") {
+        statusBadge = `<span class="status-badge status-paid"><i class="fa-solid fa-circle-check"></i> ชำระแล้ว / ส่งไฟล์แล้ว</span>`;
       } else {
         statusBadge = `<span class="status-badge status-pending"><i class="fa-solid fa-clock"></i> รอตรวจสอบชำระเงิน</span>`;
       }

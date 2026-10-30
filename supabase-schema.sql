@@ -89,6 +89,11 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS email_notification_log JSONB 
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP WITH TIME ZONE;
 
+-- ปลดล็อกและอัปเดต Check Constraint ของ payment_status เพื่อให้รองรับสถานะ 'shipped' (จัดส่งพัสดุแล้ว)
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_payment_status_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_payment_status_check 
+  CHECK (payment_status IN ('pending', 'paid', 'shipped', 'cancelled', 'refunded'));
+
 
 -- ตารางรายการสินค้าในคำสั่งซื้อ (Order Items)
 CREATE TABLE IF NOT EXISTS public.order_items (
