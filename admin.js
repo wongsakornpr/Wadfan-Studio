@@ -1049,8 +1049,58 @@ window.saveTrackingAction = async function (orderId) {
   }
 };
 
+window.lastGeneratedEmailBodyText = "";
+
 window.previewSentEmail = function (emailData) {
   if (!emailPreviewModalContent || !emailPreviewModal) return;
+
+  // ลองส่งอัตโนมัติผ่าน Vercel Serverless API (หากผู้ใช้ตั้งค่า Resend ใน Vercel ไว้)
+  fetch("/api/send-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(emailData)
+  })
+    .then((r) => r.json())
+    .then((res) => {
+      if (res.success) {
+        showAdminToast("ระบบได้ส่งอีเมลอัตโนมัติหาลูกค้าสำเร็จแล้ว!", "success");
+      }
+    })
+    .catch(() => {});
+
+  let trackingUrl = "";
+  if (emailData.carrier && emailData.tracking_number) {
+    const c = emailData.carrier.toLowerCase();
+    if (c.includes("kerry")) trackingUrl = `https://th.kerryexpress.com/th/track/?track=${emailData.tracking_number}`;
+    else if (c.includes("flash")) trackingUrl = `https://www.flashexpress.co.th/tracking/?se=${emailData.tracking_number}`;
+    else if (c.includes("ems") || c.includes("ไปรษณีย์")) trackingUrl = `https://track.thailandpost.co.th/?trackNumber=${emailData.tracking_number}`;
+    else if (c.includes("j&t") || c.includes("jt")) trackingUrl = `https://www.jtexpress.co.th/index/query/gzquery.html?bills=${emailData.tracking_number}`;
+  }
+
+  let emailBodyPlain = (emailData.message || "") + "\n\n";
+
+  if (emailData.download_links && emailData.download_links.length > 0) {
+    emailBodyPlain += "📁 ลิงก์ดาวน์โหลดใบงานของคุณจาก Google Drive:\n";
+    emailData.download_links.forEach((l) => {
+      emailBodyPlain += ` • ${l.title}\n   คลิกดาวน์โหลด: ${l.url}\n\n`;
+    });
+  }
+
+  if (emailData.tracking_number) {
+    emailBodyPlain += "🚚 ข้อมูลการจัดส่งพัสดุ:\n";
+    emailBodyPlain += ` • บริษัทขนส่ง: ${emailData.carrier || "Kerry Express"}\n`;
+    emailBodyPlain += ` • หมายเลขพัสดุ: ${emailData.tracking_number}\n`;
+    if (trackingUrl) {
+      emailBodyPlain += ` • ลิงก์ติดตามพัสดุ: ${trackingUrl}\n`;
+    }
+    emailBodyPlain += "\n";
+  }
+
+  emailBodyPlain += "ขอบคุณที่สนับสนุนร้าน Wadfan Studio (วาดฝัน สตูดิโอ) ครับ\n";
+  window.lastGeneratedEmailBodyText = emailBodyPlain;
+
+  const customerGmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailData.recipient || "")}&su=${encodeURIComponent(emailData.subject || "")}&body=${encodeURIComponent(emailBodyPlain)}`;
+  const mailtoUrl = `mailto:${encodeURIComponent(emailData.recipient || "")}?subject=${encodeURIComponent(emailData.subject || "")}&body=${encodeURIComponent(emailBodyPlain)}`;
 
   const linksHtml = (emailData.download_links || [])
     .map(
@@ -1066,10 +1116,10 @@ window.previewSentEmail = function (emailData) {
     .join("");
 
   emailPreviewModalContent.innerHTML = `
-    <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.88rem;">
-      <p><strong>ผู้รับ:</strong> ${emailData.recipient || 'ลูกค้า'}</p>
-      <p><strong>หัวข้อ:</strong> ${emailData.subject}</p>
-      <p><strong>เวลาที่ส่ง:</strong> ${new Date(emailData.sent_at).toLocaleString('th-TH')}</p>
+    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.88rem;">
+      <p style="margin: 0 0 6px 0;"><strong>ผู้รับ:</strong> <span style="color: #0284C7; font-weight: 600;">${emailData.recipient || 'ลูกค้า'}</span></p>
+      <p style="margin: 0 0 6px 0;"><strong>หัวข้อ:</strong> ${emailData.subject}</p>
+      <p style="margin: 0; color: #64748B;"><strong>เวลาที่บันทึก:</strong> ${new Date(emailData.sent_at).toLocaleString('th-TH')}</p>
     </div>
 
     <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; background: #FFF; font-size: 0.92rem; line-height: 1.6;">
@@ -1090,17 +1140,47 @@ window.previewSentEmail = function (emailData) {
         emailData.tracking_number
           ? `
         <div style="background: #EBF5FB; border: 1px solid #7BC5DC; padding: 14px; border-radius: 8px; margin-top: 14px;">
-          <h4 style="color: #0369A1;"><i class="fa-solid fa-truck"></i> ข้อมูลการจัดส่ง:</h4>
-          <p>ขนส่ง: <strong>${emailData.carrier}</strong></p>
-          <p>หมายเลขพัสดุ: <strong style="font-size: 1.1rem; color: #FF758F;">${emailData.tracking_number}</strong></p>
+          <h4 style="color: #0369A1; margin: 0 0 6px 0;"><i class="fa-solid fa-truck"></i> ข้อมูลการจัดส่ง:</h4>
+          <p style="margin: 4px 0;">ขนส่ง: <strong>${emailData.carrier}</strong></p>
+          <p style="margin: 4px 0;">หมายเลขพัสดุ: <strong style="font-size: 1.15rem; color: #FF758F;">${emailData.tracking_number}</strong></p>
+          ${trackingUrl ? `<p style="margin: 8px 0 0 0;"><a href="${trackingUrl}" target="_blank" style="color: #0284C7; font-weight: 600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> เช็คสถานะพัสดุกับเว็บขนส่ง</a></p>` : ''}
         </div>
       `
           : ''
       }
     </div>
+
+    <!-- Direct Email Dispatch Actions -->
+    <div style="margin-top: 20px; padding: 16px; background: #FFF0F3; border-radius: 12px; border: 1px solid #FBCFE8;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #9D174D; font-size: 0.88rem; font-weight: 600;">
+        <i class="fa-solid fa-paper-plane"></i> ช่องทางส่งอีเมลจริงหาลูกค้าทันที:
+      </div>
+
+      <a href="${customerGmailComposeUrl}" target="_blank" class="btn-primary full-width" style="background: linear-gradient(135deg, #0284C7, #0EA5E9); color: #FFF; text-align: center; text-decoration: none; padding: 12px 18px; border-radius: 10px; font-weight: 600; font-size: 0.96rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.28); margin-bottom: 8px;">
+        <i class="fa-brands fa-google"></i> เปิดส่งอีเมลนี้หาลูกค้าผ่าน Gmail จริงทันที (คลิกเดียวส่ง)
+      </a>
+
+      <div style="display: flex; gap: 8px;">
+        <a href="${mailtoUrl}" class="btn-secondary full-width" style="text-align: center; text-decoration: none; padding: 8px; font-size: 0.82rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i class="fa-regular fa-envelope"></i> ส่งผ่านแอพ Mail ในเครื่อง
+        </a>
+        <button type="button" class="btn-secondary full-width" onclick="window.copyEmailTextToClipboard()" style="font-size: 0.82rem; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i class="fa-regular fa-copy"></i> คัดลอกข้อความอีเมล
+        </button>
+      </div>
+    </div>
   `;
 
   emailPreviewModal.classList.add("open");
+};
+
+window.copyEmailTextToClipboard = function () {
+  if (!window.lastGeneratedEmailBodyText) return;
+  navigator.clipboard.writeText(window.lastGeneratedEmailBodyText).then(() => {
+    showAdminToast("คัดลอกข้อความอีเมลเรียบร้อยแล้ว!", "success");
+  }).catch(() => {
+    showAdminToast("ไม่สามารถคัดลอกได้ กรุณาคัดลอกด้วยตนเอง", "error");
+  });
 };
 
 window.showEmailHistoryModal = function (orderId) {
@@ -1113,8 +1193,42 @@ window.showEmailHistoryModal = function (orderId) {
     return;
   }
 
-  // Preview latest email
-  window.previewSentEmail(logs[0]);
+  if (logs.length === 1) {
+    window.previewSentEmail(logs[0]);
+    return;
+  }
+
+  // ถ้ามีหลายฉบับ แสดงรายการให้เลือกดูและกดส่งได้ตามต้องการ
+  emailPreviewModalContent.innerHTML = `
+    <div style="margin-bottom: 16px;">
+      <h3 style="font-size: 1rem; color: #1E293B; margin-bottom: 6px;">
+        <i class="fa-solid fa-clock-rotate-left text-pink"></i> ประวัติการส่งอีเมลทั้งหมด (${logs.length} ฉบับ)
+      </h3>
+      <p style="font-size: 0.85rem; color: #64748B;">คลิกเลือกฉบับที่ต้องการ เพื่อเปิดดูเนื้อหาและส่งผ่าน Gmail</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      ${logs
+        .map(
+          (log, idx) => `
+        <div style="background: #FFF; border: 1.5px solid #E2E8F0; padding: 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div>
+            <div style="font-weight: 600; color: #0284C7; font-size: 0.95rem;">${log.subject}</div>
+            <div style="font-size: 0.8rem; color: #64748B; margin-top: 4px;">
+              <i class="fa-regular fa-clock"></i> ${new Date(log.sent_at).toLocaleString('th-TH')} | ส่งถึง: ${log.recipient}
+            </div>
+          </div>
+          <button type="button" class="btn-primary btn-sm" onclick='window.previewSentEmail(${JSON.stringify(log)})' style="flex-shrink: 0; font-size: 0.82rem; padding: 6px 14px;">
+            <i class="fa-solid fa-envelope-open"></i> ดู & ส่ง Gmail
+          </button>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+
+  emailPreviewModal.classList.add("open");
 };
 
 // ==============================================================================
