@@ -609,6 +609,19 @@ window.handleOrderSubmit = async function () {
 
   const result = await window.wadfanData.createOrder(orderData, items);
 
+  if (result.success) {
+    // ส่งอีเมลแจ้งเตือนคำสั่งซื้อใหม่ไปยังแอดมิน wongsakorn.pr1996@gmail.com อัตโนมัติผ่าน Resend
+    fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: "wongsakorn.pr1996@gmail.com",
+        subject: `🎨 [Wadfan Studio] มีคำสั่งซื้อใหม่ #${result.order_number} (${name})`,
+        message: `เรียน คุณวรศากร,\n\nมีคำสั่งซื้อใหม่เข้ามาในร้าน Wadfan Studio เรียบร้อยแล้วครับ:\n\n• เลขที่คำสั่งซื้อ: ${result.order_number}\n• ชื่อลูกค้า: ${name}\n• อีเมลลูกค้า: ${email}\n• เบอร์โทร: ${phone || '-'}\n• ยอดชำระ: ฿${totalAmount}\n\nคุณสามารถเข้าจัดการออเดอร์ ดูรูปภาพ และยืนยันการจัดส่งได้ที่:\nhttps://wadfunstudio.vercel.app/admin`
+      })
+    }).catch(() => {});
+  }
+
   closeCheckoutModal();
 
   // Reset Cart
