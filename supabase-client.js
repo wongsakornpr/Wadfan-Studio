@@ -243,24 +243,45 @@ class WadfanDataProvider {
 
   // --- 1. Fetch Categories ---
   async getCategories(typeFilter = null) {
-    if (this.isSupabaseConnected) {
-      try {
-        let query = this.supabaseClient.from("categories").select("*").order("name");
-        if (typeFilter && typeFilter !== "all") {
-          query = query.eq("product_type", typeFilter);
-        }
-        const { data, error } = await query;
-        if (!error && data && data.length > 0) return data;
-      } catch (err) {
-        console.warn("Supabase fetch categories fallback:", err);
-      }
+
+  // ใช้ข้อมูลจาก Supabase เมื่อเชื่อมต่ออยู่
+  if (this.isSupabaseConnected) {
+    let query = this.supabaseClient
+      .from("categories")
+      .select("*")
+      .order("name");
+
+    if (typeFilter && typeFilter !== "all") {
+      query = query.eq("product_type", typeFilter);
     }
 
-    // LocalStorage fallback
-    const local = JSON.parse(localStorage.getItem("wadfan_categories") || "[]");
-    if (!typeFilter || typeFilter === "all") return local;
-    return local.filter((c) => c.product_type === typeFilter);
+    const { data, error } = await query;
+
+    if (error) {
+      console.error(
+        "Supabase fetch categories error:",
+        error
+      );
+      throw error;
+    }
+
+    // ไม่ใช้ Mock ID เมื่อเชื่อมต่อ Supabase
+    return data || [];
   }
+
+  // ใช้ LocalStorage เฉพาะกรณีไม่ได้เชื่อมต่อ
+  const local = JSON.parse(
+    localStorage.getItem("wadfan_categories") || "[]"
+  );
+
+  if (!typeFilter || typeFilter === "all") {
+    return local;
+  }
+
+  return local.filter(
+    (c) => c.product_type === typeFilter
+  );
+}
 
   // --- 2. Fetch Products ---
   async getProducts(filters = {}) {
