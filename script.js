@@ -570,13 +570,23 @@ window.handleOrderSubmit = async function () {
   const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
   const isFree = totalAmount === 0;
 
-  // Prepare Uploaded Files Simulation
+  // Prepare Uploaded Files
   const uploadedFiles = [];
   if (customerAttachedFile) {
+    // อ่านข้อมูลไฟล์รูปภาพเป็น Base64 Data URL เพื่อให้เปิดดูและดาวน์โหลดได้ 100%
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(customerAttachedFile);
+    });
+
     uploadedFiles.push({
       name: customerAttachedFile.name,
       size: customerAttachedFile.size,
-      type: customerAttachedFile.type
+      type: customerAttachedFile.type,
+      dataUrl: dataUrl,
+      file_raw: customerAttachedFile
     });
   }
 

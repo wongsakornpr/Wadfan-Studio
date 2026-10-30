@@ -173,3 +173,17 @@ INSERT INTO public.categories (name, slug, product_type, sort_order) VALUES
 ON CONFLICT (slug) DO UPDATE 
 SET sort_order = EXCLUDED.sort_order,
     product_type = EXCLUDED.product_type;
+
+
+-- ==============================================================================
+-- 7. สร้าง Storage Bucket สำหรับจัดเก็บรูปภาพที่ลูกค้าอัปโหลด (Customer Uploads)
+-- ==============================================================================
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('customer-uploads', 'customer-uploads', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Public Uploads customer-uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Public Downloads customer-uploads" ON storage.objects;
+
+CREATE POLICY "Public Uploads customer-uploads" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'customer-uploads');
+CREATE POLICY "Public Downloads customer-uploads" ON storage.objects FOR SELECT USING (bucket_id = 'customer-uploads');

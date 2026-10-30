@@ -549,17 +549,55 @@ class WadfanDataProvider {
     const hasWorksheet = items.some((i) => i.product_type === "worksheet");
     const orderType = hasImage && hasWorksheet ? "mixed" : hasImage ? "image" : "worksheet";
 
-    // สำหรับสินค้าโหลดฟรี หากยอดรวมเป็น 0 ให้สถานะเป็น paid ทันที
     const isFree = orderData.total_amount === 0;
     const initialStatus = isFree ? "paid" : "pending";
 
-    // สร้างข้อมูลจำลองโฟลเดอร์ Google Drive สำหรับคำสั่งซื้อนี้
+    // จัดการไฟล์ที่ลูกค้าอัปโหลด: อัปโหลดเข้า Supabase Storage หรือบันทึก DataURL คมชัดสูง
     const googleDriveFolderPath = `Google Drive / Wadfan_Orders / ${orderNumber} /`;
-    const formattedUploadedFiles = (orderData.uploaded_files || []).map((file) => ({
-      file_name: file.name,
-      file_size: file.size ? (file.size / 1024 / 1024).toFixed(2) + " MB" : "Custom File",
-      google_drive_path: `${googleDriveFolderPath}${file.name}`
-    }));
+    const formattedUploadedFiles = [];
+
+    for (const file of orderData.uploaded_files || []) {
+      let fileUrl = file.dataUrl || "";
+
+      // ถ้าเชื่อมต่อ Supabase ลองอัปโหลดเข้า Storage Bucket "customer-uploads"
+      if (this.isSupabaseConnected && file.file_raw) {
+        try {
+          // พยายามสร้าง bucket อัตโนมัติเผื่อยังไม่ได้รัน SQL
+          try {
+            await this.supabaseClient.storage.createBucket("customer-uploads", { public: true });
+          } catch (e) {
+            // ละเว้นหาก bucket มีอยู่แล้ว
+          }
+
+          const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const storagePath = `${orderNumber}/${Date.now()}_${sanitizedFileName}`;
+          
+          const { data: uploadData, error: uploadErr } = await this.supabaseClient.storage
+            .from("customer-uploads")
+            .upload(storagePath, file.file_raw, { upsert: true });
+
+          if (!uploadErr) {
+            const { data: publicUrlData } = this.supabaseClient.storage
+              .from("customer-uploads")
+              .getPublicUrl(storagePath);
+            if (publicUrlData && publicUrlData.publicUrl) {
+              fileUrl = publicUrlData.publicUrl;
+            }
+          } else {
+            console.warn("Storage upload warning, falling back to dataUrl:", uploadErr.message);
+          }
+        } catch (storageException) {
+          console.warn("Supabase Storage error:", storageException);
+        }
+      }
+
+      formattedUploadedFiles.push({
+        file_name: file.name,
+        file_size: file.size ? (file.size / 1024 / 1024).toFixed(2) + " MB" : "Custom File",
+        file_url: fileUrl, // ลิงก์ดาวน์โหลด/พรีวิวรูปภาพจริง
+        google_drive_path: `${googleDriveFolderPath}${file.name}`
+      });
+    }
 
     // บันทึก Log การส่งอีเมลทันทีสำหรับสินค้าฟรี
     let emailLog = [];

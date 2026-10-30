@@ -768,17 +768,81 @@ window.openOrderDetailModal = function (orderId) {
   const isPaid = order.payment_status === "paid" || order.payment_status === "shipped";
   const isShipped = order.payment_status === "shipped";
 
-  // Uploaded files list
+  // Uploaded files list with preview & download actions
   const filesListHtml = (order.customer_uploaded_files || [])
     .map(
-      (f) => `
-    <div style="background: #FFF; padding: 10px 14px; border-radius: 8px; border: 1px solid #BAE6FD; margin-top: 6px; font-size: 0.85rem;">
-      <div style="font-weight: 600; color: #0284C7;"><i class="fa-solid fa-file-image"></i> ${f.file_name} (${f.file_size || ''})</div>
-      <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">📁 ที่อยู่โฟลเดอร์: <code>${f.google_drive_path}</code></div>
+      (f, idx) => `
+    <div class="customer-file-card" style="background: #FFF; padding: 14px; border-radius: 12px; border: 1.5px solid #BAE6FD; margin-top: 10px; box-shadow: 0 2px 8px rgba(79, 163, 209, 0.08);">
+      <div style="display: flex; gap: 14px; align-items: center;">
+        ${
+          f.file_url
+            ? `<div style="position: relative; width: 80px; height: 80px; flex-shrink: 0; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1px solid #CBD5E1;" onclick="window.openImageFull('${f.file_url}')" title="คลิกเพื่อดูรูปขนาดเต็ม">
+                 <img src="${f.file_url}" style="width: 100%; height: 100%; object-fit: cover;">
+                 <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.65rem; padding: 1px 4px; border-radius: 4px;"><i class="fa-solid fa-magnifying-glass-plus"></i> ขยาย</span>
+               </div>`
+            : `<div style="width: 60px; height: 60px; background: #F1F5F9; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #64748B;"><i class="fa-solid fa-file-image"></i></div>`
+        }
+        <div style="flex-grow: 1;">
+          <div style="font-weight: 600; color: #0284C7; font-size: 0.95rem; word-break: break-all;">
+            <i class="fa-solid fa-file-image"></i> ${f.file_name} <span style="font-size: 0.8rem; color: #64748B; font-weight: normal;">(${f.file_size || ''})</span>
+          </div>
+          <div style="font-size: 0.78rem; color: #64748B; margin-top: 4px;">
+            📁 บันทึกลง: <code>${f.google_drive_path}</code>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+            ${
+              f.file_url
+                ? `
+              <button type="button" class="btn-primary btn-sm" onclick="window.openImageFull('${f.file_url}')" style="font-size: 0.8rem; padding: 5px 14px;">
+                <i class="fa-solid fa-eye"></i> ดูรูปภาพต้นฉบับ
+              </button>
+              <a href="${f.file_url}" download="${f.file_name}" class="btn-secondary btn-sm" style="font-size: 0.8rem; padding: 5px 14px;">
+                <i class="fa-solid fa-download"></i> ดาวน์โหลดลงเครื่อง
+              </a>
+            `
+                : `<span style="font-size: 0.8rem; color: #DC2626;">(ออเดอร์นี้ทำรายการก่อนอัปเดตระบบไฟล์ กรุณาทดสอบสั่งใหม่อีกครั้งเพื่อเปิดดูรูปจริงได้ทันที)</span>`
+            }
+          </div>
+        </div>
+      </div>
     </div>
   `
     )
     .join("");
+
+  // Create Gmail forward link to wongsakorn.pr1996@gmail.com
+  const adminEmail = "wongsakorn.pr1996@gmail.com";
+  const gmailSubject = encodeURIComponent(`[Wadfan Studio] คำสั่งซื้อใหม่: ${order.order_number} (${order.customer_name})`);
+  const gmailBodyText = encodeURIComponent(
+    `เรียน คุณวรศากร (แอดมิน Wadfan Studio),\n\n` +
+    `มีคำสั่งซื้อใหม่เข้ามาในระบบ รายละเอียดดังนี้ครับ:\n` +
+    `=========================================\n` +
+    `• เลขคำสั่งซื้อ: ${order.order_number}\n` +
+    `• วันที่สั่งซื้อ: ${new Date(order.created_at).toLocaleString('th-TH')}\n` +
+    `• ลูกค้า: ${order.customer_name}\n` +
+    `• อีเมล: ${order.customer_email}\n` +
+    `• เบอร์โทรศัพท์: ${order.customer_phone || '-'}\n` +
+    `• ยอดชำระสุทธิ: ฿${order.total_amount}\n` +
+    `• สถานะการชำระ: ${order.payment_status}\n` +
+    `=========================================\n` +
+    `รายการสินค้าที่สั่งซื้อ:\n` +
+    (order.items || []).map((i) => ` - ${i.product_title} (${i.variant_name}) ราคา ฿${i.price}`).join('\n') +
+    `\n=========================================\n` +
+    (order.customer_uploaded_files && order.customer_uploaded_files.length > 0
+      ? `รูปภาพที่ลูกค้าแนบมา:\n` +
+        order.customer_uploaded_files
+          .map(
+            (f) =>
+              ` • ไฟล์: ${f.file_name} (${f.file_size || ''})\n   ลิงก์เปิดดูรูป: ${f.file_url || '(ยังไม่มีลิงก์รูป)'}\n   โฟลเดอร์ Drive: ${f.google_drive_path}`
+          )
+          .join('\n')
+      : `(ไม่มีไฟล์รูปแนบ)`) +
+    `\n=========================================\n` +
+    `เปิดระบบจัดการหลังบ้าน: https://your-domain.vercel.app/admin\n`
+  );
+
+  const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(adminEmail)}&su=${gmailSubject}&body=${gmailBodyText}`;
 
   // Items list
   const itemsListHtml = (order.items || [])
@@ -890,12 +954,55 @@ window.openOrderDetailModal = function (orderId) {
           <i class="fa-solid fa-clock-rotate-left"></i> ดูประวัติอีเมลที่ระบบส่งอัตโนมัติ (${(order.email_notification_log || []).length} ฉบับ)
         </button>
 
+        <!-- Direct Gmail Backup / Forward Button -->
+        <a href="${gmailComposeUrl}" target="_blank" class="btn-primary full-width" style="margin-top: 10px; background: linear-gradient(135deg, #EA4335, #FF758F); color: #FFF; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fa-brands fa-google"></i> ส่งสรุปออเดอร์นี้เข้า Gmail (${adminEmail})
+        </a>
+
       </div>
 
     </div>
   `;
 
   orderDetailModal.classList.add("open");
+};
+
+window.openImageFull = function (url) {
+  if (!url) return;
+  
+  // สร้าง Lightbox Overlay ในหน้าเว็บโดยตรง ไม่โดน Popup Blocker กวนใจ
+  let lightbox = document.getElementById("wadfanImageLightbox");
+  if (!lightbox) {
+    lightbox = document.createElement("div");
+    lightbox.id = "wadfanImageLightbox";
+    lightbox.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.92); z-index: 99999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px; backdrop-filter: blur(8px);
+    `;
+    document.body.appendChild(lightbox);
+  }
+
+  lightbox.innerHTML = `
+    <div style="position: absolute; top: 20px; right: 24px; display: flex; gap: 12px; z-index: 10;">
+      <a href="${url}" download="customer-upload.png" target="_blank" style="background: #0284C7; color: #fff; padding: 10px 20px; border-radius: 99px; text-decoration: none; font-weight: 600; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(2,132,199,0.3); display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-download"></i> ดาวน์โหลดรูปลงเครื่อง
+      </a>
+      <button onclick="document.getElementById('wadfanImageLightbox').style.display='none'" style="background: rgba(255,255,255,0.2); color: #fff; border: none; font-size: 1.5rem; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        &times;
+      </button>
+    </div>
+    <div style="max-width: 90vw; max-height: 82vh; display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
+      <img src="${url}" alt="Customer Upload" style="max-width: 100%; max-height: 82vh; object-fit: contain; border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.15);">
+    </div>
+    <div style="color: #94A3B8; font-size: 0.85rem; margin-top: 14px;">
+      คลิกพื้นที่ว่างรอบรูป หรือกดกากบาทด้านบนเพื่อปิดหน้าต่าง
+    </div>
+  `;
+
+  lightbox.style.display = "flex";
+  lightbox.onclick = () => { lightbox.style.display = "none"; };
 };
 
 window.confirmPaymentAction = async function (orderId) {
