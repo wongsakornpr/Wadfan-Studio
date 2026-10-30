@@ -296,13 +296,15 @@ function renderProducts() {
         metaInfoHtml = `<span><i class="fa-solid fa-graduation-cap"></i> ${grade}</span> <span>${pages} หน้า (PDF)</span>`;
       }
 
+      const coverImg = (window.wadfanData ? window.wadfanData.formatGoogleDriveImageUrl(item.cover_image_url) : item.cover_image_url) || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';
+
       return `
       <article class="product-card" data-id="${item.id}">
         <div class="product-thumb-container">
           <span class="product-tag tag-best">${item.tag || "แนะนำ"}</span>
           <span class="product-type-pill ${typePillClass}">${typePillLabel}</span>
 
-          <img src="${item.cover_image_url || 'https://via.placeholder.com/400'}" class="product-cover-img" alt="${item.title}" onerror="this.src='https://via.placeholder.com/400?text=Wadfan+Studio'">
+          <img src="${coverImg}" class="product-cover-img" alt="${item.title}" onerror="if(this.src.includes('lh3.googleusercontent.com/d/')){const fid=this.src.split('/d/')[1];this.src='https://drive.google.com/thumbnail?id='+fid+'&sz=w1000';}else{this.src='https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';}">
 
           <button class="quick-preview-btn" onclick="window.openProductPreview('${item.id}')">
             <i class="fa-regular fa-eye"></i> ดูตัวเลือก & ขนาด
@@ -373,6 +375,8 @@ window.openProductPreview = function (productId) {
     )
     .join("");
 
+  const previewCoverImg = (window.wadfanData ? window.wadfanData.formatGoogleDriveImageUrl(product.cover_image_url) : product.cover_image_url) || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';
+
   previewModalContent.innerHTML = `
     <div class="preview-modal-body">
       <div class="preview-badge-row">
@@ -388,7 +392,7 @@ window.openProductPreview = function (productId) {
 
       <div class="preview-grid-details">
         <div style="border-radius: 14px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); height: 260px; background: #FAF9F8;">
-          <img src="${product.cover_image_url}" style="width: 100%; height: 100%; object-fit: cover;" alt="${product.title}">
+          <img src="${previewCoverImg}" style="width: 100%; height: 100%; object-fit: cover;" alt="${product.title}" onerror="if(this.src.includes('lh3.googleusercontent.com/d/')){const fid=this.src.split('/d/')[1];this.src='https://drive.google.com/thumbnail?id='+fid+'&sz=w1000';}else{this.src='https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';}">
         </div>
 
         <div class="preview-details-info">
@@ -732,10 +736,14 @@ window.handleOrderSubmit = async function () {
       <span>กำลังประมวลผลคำสั่งซื้อ... กรุณารอสักครู่</span>
     `;
   }
+  const checkoutDialog = document.querySelector("#checkoutModal .checkout-dialog");
+  if (checkoutDialog) {
+    checkoutDialog.classList.add("is-loading");
+    checkoutDialog.scrollTop = 0;
+  }
   if (loadingOverlay) {
+    loadingOverlay.classList.add("active");
     loadingOverlay.style.display = "flex";
-    const dialog = document.querySelector("#checkoutModal .modal-dialog");
-    if (dialog) dialog.scrollTop = 0;
   }
 
   try {
@@ -900,7 +908,11 @@ window.handleOrderSubmit = async function () {
       submitBtn.innerHTML = originalBtnContent;
     }
     if (loadingOverlay) {
+      loadingOverlay.classList.remove("active");
       loadingOverlay.style.display = "none";
+    }
+    if (checkoutDialog) {
+      checkoutDialog.classList.remove("is-loading");
     }
   }
 };

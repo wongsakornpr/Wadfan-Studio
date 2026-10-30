@@ -265,10 +265,11 @@ function renderProductsTable() {
         ? `<a href="${item.download_url}" target="_blank" class="drive-badge-link" title="${item.download_url}"><i class="fa-brands fa-google-drive"></i> เปิด Drive</a>`
         : `<span style="font-size: 0.78rem; color: #94A3B8;">-</span>`;
 
+      const tableThumbUrl = formatGoogleDriveImageUrl(item.cover_image_url) || 'https://via.placeholder.com/60';
       return `
       <tr>
         <td>
-          <img src="${item.cover_image_url || 'https://via.placeholder.com/60'}" class="table-prod-thumb" alt="${item.title}" onerror="this.src='https://via.placeholder.com/60?text=No+Img'">
+          <img src="${tableThumbUrl}" class="table-prod-thumb" alt="${item.title}" onerror="if(this.src.includes('lh3.googleusercontent.com/d/')){const fid=this.src.split('/d/')[1];this.src='https://drive.google.com/thumbnail?id='+fid+'&sz=w300';}else{this.src='https://via.placeholder.com/60?text=No+Img';}">
         </td>
         <td>
           <div class="table-prod-info">
@@ -311,6 +312,67 @@ function renderProductsTable() {
     .join("");
 }
 
+// แปลงลิงก์แชร์ Google Drive ให้กลายเป็น Direct Image URL ที่นำไปแสดงใน <img> ได้ทันที
+function formatGoogleDriveImageUrl(url) {
+  if (!url || typeof url !== "string") return url || "";
+  const trimmed = url.trim();
+
+  if (trimmed.includes("lh3.googleusercontent.com/d/")) return trimmed;
+
+  if (trimmed.includes("drive.google.com") || trimmed.includes("docs.google.com")) {
+    const fileIdMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                        trimmed.match(/id=([a-zA-Z0-9_-]+)/) ||
+                        trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
+
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://lh3.googleusercontent.com/d/${fileIdMatch[1]}`;
+    }
+  }
+
+  return trimmed;
+}
+
+function updateCoverUrlPreview(url) {
+  const previewBox = document.getElementById("coverUrlPreviewBox");
+  const previewImg = document.getElementById("coverUrlPreviewImg");
+  const previewStatus = document.getElementById("coverUrlPreviewStatus");
+  const previewNote = document.getElementById("coverUrlPreviewNote");
+
+  if (!previewBox || !previewImg) return;
+
+  if (!url || !url.trim()) {
+    previewBox.style.display = "none";
+    previewImg.src = "";
+    return;
+  }
+
+  const convertedUrl = formatGoogleDriveImageUrl(url);
+  previewBox.style.display = "block";
+  previewImg.src = convertedUrl;
+
+  previewImg.onload = function () {
+    if (previewStatus) {
+      previewStatus.innerHTML = `<i class="fa-solid fa-circle-check text-green"></i> รูปภาพแสดงผลได้สมบูรณ์ (พร้อมใช้งาน)`;
+    }
+    if (previewNote) {
+      previewNote.textContent = convertedUrl.includes("googleusercontent.com")
+        ? "แปลงจากลิงก์ Google Drive สำเร็จ รูปภาพเชื่อมต่อเรียบร้อย"
+        : "ตรวจสอบลิงก์รูปภาพสำเร็จ พร้อมแสดงในการ์ดสินค้า";
+    }
+  };
+
+  previewImg.onerror = function () {
+    if (previewStatus) {
+      previewStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color: #EAB308;"></i> รูปภาพยังไม่แสดงผล`;
+    }
+    if (previewNote) {
+      previewNote.innerHTML = convertedUrl.includes("googleusercontent.com")
+        ? `<strong>คำแนะนำ:</strong> ใน Google Drive ให้คลิกขวาที่รูป &gt; <em>แชร์ (Share)</em> &gt; เปลี่ยนสิทธิ์เป็น <strong>"ทุกคนที่มีลิงก์ (Anyone with the link)"</strong> นะครับ`
+        : `กรุณาตรวจสอบว่า URL รูปภาพถูกต้องและสามารถเข้าถึงได้จากอินเทอร์เน็ต`;
+    }
+  };
+}
+
 function openProductModal(product = null) {
   editingProductId = product ? product.id : null;
   formProductId.value = editingProductId || "";
@@ -324,6 +386,7 @@ function openProductModal(product = null) {
     formStatus.value = product.status || "active";
     formShortDesc.value = product.short_desc || "";
     formFullDesc.value = product.full_desc || "";
+    updateCoverUrlPreview(product.cover_image_url || "");
 
     const currentType = product.product_type || "image";
     switchProductTypeForm(currentType);
@@ -354,6 +417,7 @@ function openProductModal(product = null) {
     switchProductTypeForm("image");
     variantsContainer.innerHTML = "";
     applyDefaultPresets("image");
+    updateCoverUrlPreview("");
   }
 
   productModal.classList.add("open");
@@ -440,7 +504,7 @@ async function handleSaveProduct() {
   const selectedType = document.querySelector('input[name="product_type"]:checked').value;
   const title = formTitle.value.trim();
   const categoryId = formCategory.value;
-  const coverUrl = formCoverUrl.value.trim();
+  const coverUrl = formatGoogleDriveImageUrl(formCoverUrl.value.trim());
   const downloadUrl = formDownloadUrl.value.trim();
   const tag = formTag.value;
   const status = formStatus.value;
@@ -1405,6 +1469,26 @@ function setupEventListeners() {
     adminOrderSearchInput.addEventListener("input", (e) => {
       orderSearchQuery = e.target.value;
       renderOrdersTable();
+    });
+  }
+
+  // Cover Image URL Live Preview & Google Drive Auto Converter
+  if (formCoverUrl) {
+    const handleCoverInput = (e) => {
+      const val = e.target.value;
+      const converted = formatGoogleDriveImageUrl(val);
+      if (converted !== val && converted.includes("googleusercontent.com")) {
+        e.target.value = converted;
+      }
+      updateCoverUrlPreview(e.target.value);
+    };
+
+    formCoverUrl.addEventListener("input", handleCoverInput);
+    formCoverUrl.addEventListener("change", handleCoverInput);
+    formCoverUrl.addEventListener("paste", () => {
+      setTimeout(() => {
+        handleCoverInput({ target: formCoverUrl });
+      }, 60);
     });
   }
 

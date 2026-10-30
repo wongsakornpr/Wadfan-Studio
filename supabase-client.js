@@ -273,6 +273,26 @@ class WadfanDataProvider {
     }
   }
 
+  // แปลงลิงก์แชร์ Google Drive ให้กลายเป็น Direct Image URL ที่นำไปแสดงใน <img> ได้ทันที 100%
+  formatGoogleDriveImageUrl(url) {
+    if (!url || typeof url !== "string") return url || "";
+    const trimmed = url.trim();
+
+    if (trimmed.includes("lh3.googleusercontent.com/d/")) return trimmed;
+
+    if (trimmed.includes("drive.google.com") || trimmed.includes("docs.google.com")) {
+      const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                    trimmed.match(/id=([a-zA-Z0-9_-]+)/) ||
+                    trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
+
+      if (match && match[1]) {
+        return `https://lh3.googleusercontent.com/d/${match[1]}`;
+      }
+    }
+
+    return trimmed;
+  }
+
   // ==============================================================================
   // 1. Categories Management (เพิ่ม/แก้ไข/ลบหมวดหมู่)
   // ==============================================================================
@@ -436,6 +456,7 @@ class WadfanDataProvider {
             return {
               ...item,
               category_name: catName,
+              cover_image_url: this.formatGoogleDriveImageUrl(item.cover_image_url),
               variants: item.product_variants || []
             };
           });
@@ -455,6 +476,10 @@ class WadfanDataProvider {
     }
 
     let local = JSON.parse(localStorage.getItem("wadfan_products") || "[]");
+    local = local.map((p) => ({
+      ...p,
+      cover_image_url: this.formatGoogleDriveImageUrl(p.cover_image_url)
+    }));
     if (type && type !== "all") local = local.filter((p) => p.product_type === type);
     if (categorySlug && categorySlug !== "all") {
       const cats = JSON.parse(localStorage.getItem("wadfan_categories") || "[]");
@@ -486,7 +511,7 @@ class WadfanDataProvider {
           category_id: validCategoryId,
           short_desc: productData.short_desc,
           full_desc: productData.full_desc,
-          cover_image_url: productData.cover_image_url,
+          cover_image_url: this.formatGoogleDriveImageUrl(productData.cover_image_url),
           download_url: productData.download_url || "", // Google Drive Link
           base_price: parseFloat(productData.base_price || 0),
           tag: productData.tag || "มาใหม่",

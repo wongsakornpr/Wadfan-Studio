@@ -512,14 +512,23 @@
   <div class="modal-backdrop" id="checkoutModal">
     <div class="modal-dialog checkout-dialog" style="position: relative; max-height: 90vh; overflow-y: auto;">
       <!-- Loading Overlay (Shown during order processing / upload) -->
-      <div id="checkoutLoadingOverlay" style="display: none; position: absolute; inset: 0; min-height: 100%; background: rgba(255, 255, 255, 0.96); z-index: 100; border-radius: 20px; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; backdrop-filter: blur(5px);">
-        <div style="font-size: 3rem; color: #FF758F; margin-bottom: 16px;">
-          <i class="fa-solid fa-circle-notch fa-spin"></i>
+      <div id="checkoutLoadingOverlay" class="checkout-loading-overlay">
+        <div class="loading-art-container">
+          <div class="loading-spinner-ring"></div>
+          <div class="loading-center-icon">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
         </div>
-        <h3 style="font-size: 1.25rem; color: #1E293B; margin-bottom: 8px;" id="checkoutLoadingTitle">กำลังดำเนินการสั่งซื้อ...</h3>
-        <p style="color: #64748B; font-size: 0.9rem; max-width: 380px; line-height: 1.5; margin: 0 auto;" id="checkoutLoadingSub">
-          ระบบกำลังอัปโหลดไฟล์และสลิปเข้าสู่ Google Drive ของร้าน กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้ครับ
+        <h3 style="font-size: 1.3rem; color: #1E293B; margin-bottom: 8px;" id="checkoutLoadingTitle">กำลังดำเนินการสั่งซื้อ...</h3>
+        <p style="color: #64748B; font-size: 0.92rem; max-width: 380px; line-height: 1.5; margin: 0 auto;" id="checkoutLoadingSub">
+          ระบบกำลังบันทึกคำสั่งซื้อและส่งไฟล์ขึ้น Google Drive ของร้าน...
         </p>
+        <div class="loading-progress-bar-wrap">
+          <div class="loading-progress-bar-fill"></div>
+        </div>
+        <small class="loading-safe-badge">
+          <i class="fa-solid fa-shield-halved text-green"></i> กำลังส่งข้อมูลอย่างปลอดภัย กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้ครับ
+        </small>
       </div>
 
       <button class="modal-close-btn" id="checkoutCloseBtn">&times;</button>
