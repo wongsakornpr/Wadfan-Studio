@@ -60,6 +60,9 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 body {
@@ -69,6 +72,8 @@ body {
   line-height: 1.65;
   position: relative;
   overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -735,13 +740,50 @@ ul {
   align-items: center;
   gap: 10px;
   background-color: var(--color-white);
-  border: 1px solid var(--border-light);
-  padding: 6px 14px 6px 8px;
+  border: 1.5px solid var(--border-light);
+  padding: 6px 16px 6px 8px;
   border-radius: var(--radius-full);
   font-size: 0.88rem;
   color: var(--text-muted);
   box-shadow: var(--shadow-sm);
   margin-bottom: 24px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-tag:hover {
+  border-color: rgba(255, 117, 143, 0.45);
+  box-shadow: 0 4px 16px rgba(255, 117, 143, 0.15);
+  transform: translateY(-2px);
+  color: var(--color-pink-primary);
+}
+
+.hero-tag:active {
+  transform: scale(0.97);
+}
+
+.hero-tag .tag-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--text-main);
+  transition: color 0.2s ease;
+}
+
+.hero-tag:hover .tag-text {
+  color: var(--color-pink-primary);
+}
+
+.hero-tag .tag-arrow {
+  font-size: 0.78rem;
+  color: var(--color-pink-primary);
+  transition: transform 0.2s ease;
+}
+
+.hero-tag:hover .tag-arrow {
+  transform: translateX(4px);
 }
 
 .tag-badge {
@@ -2780,29 +2822,278 @@ button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
 }
 
 @media (max-width: 768px) {
+  /* Prevent horizontal overflow on mobile */
+  .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .bg-shape {
+    display: none; /* Hide background blur orbs on mobile to eliminate any horizontal scrolling */
+  }
+
+  /* Top Announcement Bar */
+  .top-announcement {
+    padding: 6px 0;
+    font-size: 0.76rem;
+  }
+
+  .announcement-content {
+    flex-direction: column;
+    gap: 3px;
+    line-height: 1.35;
+    padding: 0 10px;
+    text-align: center;
+  }
+
+  .announcement-link {
+    font-size: 0.75rem;
+  }
+
+  /* Navbar Mobile Layout: Perfectly fits within 360px+ screens without zooming out */
+  .navbar-wrapper {
+    width: 100%;
+  }
+
+  .navbar {
+    height: 62px;
+    gap: 6px;
+  }
+
   .nav-links {
     display: none;
   }
 
-  .mobile-menu-btn {
-    display: block;
+  .logo {
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
   }
 
-  .cart-label {
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    min-width: 0;
+  }
+
+  .brand-en {
+    font-size: 1.15rem;
+    white-space: nowrap;
+  }
+
+  .brand-th {
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .icon-btn.search-toggle-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .cart-btn {
+    padding: 6px 10px;
+    font-size: 0.88rem;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .cart-btn .cart-label {
     display: none;
   }
 
+  .cart-badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    padding: 0 4px;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background-color: var(--color-bg-soft);
+    border: 1px solid var(--border-light);
+    font-size: 1.15rem;
+    color: var(--text-main);
+    flex-shrink: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .mobile-menu-btn:active {
+    background-color: var(--color-pink-light);
+    color: var(--color-pink-primary);
+    transform: scale(0.94);
+  }
+
+  /* Hero Section Mobile Balance */
+  .hero-section {
+    padding: 28px 0 50px;
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    padding: 5px 12px 5px 6px;
+    gap: 8px;
+    font-size: 0.82rem;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px rgba(100, 116, 139, 0.08);
+  }
+
+  .hero-tag .tag-badge {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .hero-tag .tag-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-main);
+  }
+
+  .hero-tag .tag-arrow {
+    font-size: 0.72rem;
+  }
+
   .hero-title {
-    font-size: 2.15rem;
+    font-size: 1.95rem;
+    line-height: 1.32;
+    margin-bottom: 16px;
+    word-break: break-word;
+  }
+
+  .hero-desc {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    margin-bottom: 24px;
+    padding: 0 4px;
+  }
+
+  .hero-buttons {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .hero-buttons .btn-large {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 20px;
+    font-size: 0.98rem;
+  }
+
+  /* Hero Stats Balanced Grid */
+  .hero-stats {
+    width: 100%;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 6px;
+    padding: 14px 8px;
+    align-items: center;
+    box-sizing: border-box;
+    margin-bottom: 30px;
+    background-color: #FFFFFF;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .stat-item {
+    text-align: center;
+    min-width: 0;
+  }
+
+  .stat-number {
+    font-size: 1.15rem;
+    line-height: 1.1;
+    font-weight: 700;
+  }
+
+  .stat-text {
+    font-size: 0.72rem;
+    line-height: 1.25;
+    margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 24px;
+    background-color: var(--border-card);
+  }
+
+  /* Products & Sections Header */
+  .section-padding {
+    padding: 60px 0;
   }
 
   .section-title {
-    font-size: 1.8rem;
+    font-size: 1.7rem;
+  }
+
+  .section-header-flex {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .product-search-bar {
+    width: 100%;
+    padding: 10px 16px;
+  }
+
+  .main-type-tabs-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .main-type-tab {
+    width: 100%;
+    justify-content: center;
+    padding: 11px 16px;
+    font-size: 0.92rem;
   }
 
   .products-grid {
     grid-template-columns: 1fr;
-    max-width: 420px;
+    max-width: 100%;
     margin-left: auto;
     margin-right: auto;
   }
@@ -2817,7 +3108,7 @@ button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
 
   .freebie-card {
     grid-template-columns: 1fr;
-    padding: 36px 24px;
+    padding: 30px 18px;
     text-align: center;
   }
 
@@ -2843,8 +3134,8 @@ button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
     max-width: 320px;
   }
 
-  .floating-badge {
-    display: none; /* Hide floating badges on small screens to prevent overlap */
+  .floating-badge, .floating-sticker {
+    display: none; /* Hide floating badges and stickers on small screens to prevent overlap or horizontal overflow */
   }
 
   .footer-grid {
@@ -2855,6 +3146,35 @@ button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
     flex-direction: column;
     text-align: center;
     gap: 12px;
+  }
+}
+
+/* Extra small mobile screens (width <= 480px) */
+@media (max-width: 480px) {
+  .logo-text .brand-th {
+    display: none; /* Hide Thai brand subtext in navbar to ensure 100% spacious room for menu button */
+  }
+
+  .brand-en {
+    font-size: 1.1rem;
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .hero-tag {
+    padding: 4px 10px 4px 4px;
+    gap: 6px;
+  }
+
+  .hero-tag .tag-badge {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+
+  .hero-tag .tag-text {
+    font-size: 0.76rem;
   }
 }
 

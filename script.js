@@ -970,6 +970,35 @@ function setupEventListeners() {
   if (checkoutBtn) checkoutBtn.addEventListener("click", openCheckoutModal);
   if (checkoutCloseBtn) checkoutCloseBtn.addEventListener("click", closeCheckoutModal);
 
+  // Search Toggle in Navbar
+  const searchToggleBtn = document.getElementById("searchToggleBtn");
+  if (searchToggleBtn) {
+    searchToggleBtn.addEventListener("click", () => {
+      const prodSection = document.getElementById("products");
+      if (prodSection) {
+        prodSection.scrollIntoView({ behavior: "smooth" });
+      }
+      setTimeout(() => {
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 400);
+    });
+  }
+
+  // Hero Tag Pill Click Handler
+  const heroTagLink = document.getElementById("heroTagLink");
+  if (heroTagLink) {
+    heroTagLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      const prodSection = document.getElementById("products");
+      if (prodSection) {
+        prodSection.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  }
+
   if (freebieSubmitBtn) {
     freebieSubmitBtn.addEventListener("click", (e) => {
       e.preventDefault();
