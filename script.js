@@ -270,7 +270,9 @@ function renderCustomerReviews() {
   const averageEl = document.getElementById("realAverageRating");
   if (!grid) return;
 
-  const reviews = approvedCustomerReviews.filter(item => item.status === "approved");
+  // /api/site?view=public already returns approved reviews only.
+  // Do not filter by status here because the public API intentionally omits that field.
+  const reviews = approvedCustomerReviews;
   const average = reviews.length
     ? reviews.reduce((sum, item) => sum + (Number(item.rating) || 0), 0) / reviews.length
     : 0;
