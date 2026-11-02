@@ -135,14 +135,13 @@ function checkAdminAuth() {
 
 window.handleAdminLogin = function () {
   const passcode = adminPasscode ? adminPasscode.value.trim() : "";
-  // รหัสผ่านเริ่มต้นคือ wadfan1234
-  if (passcode === "wadfan1234") {
+  if (passcode === "050763") {
     sessionStorage.setItem("wadfan_admin_auth", "true");
     adminAuthOverlay.style.display = "none";
     adminMainWrapper.style.display = "block";
     showAdminToast("เข้าสู่ระบบผู้ดูแลเรียบร้อยแล้ว", "success");
   } else {
-    showAdminToast("รหัสผ่านไม่ถูกต้อง (รหัสเริ่มต้นคือ wadfan1234)", "error");
+    showAdminToast("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง", "error");
   }
 };
 

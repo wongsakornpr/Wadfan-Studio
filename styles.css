@@ -879,7 +879,8 @@ ul {
 .hero-card-stack {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: 450px;
+  padding: 30px 10px;
 }
 
 .hero-main-card {
@@ -893,7 +894,7 @@ ul {
 }
 
 .hero-main-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
 }
 
 .card-glass-header {
@@ -1047,27 +1048,29 @@ ul {
 /* Floating Badges */
 .floating-badge {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  padding: 10px 16px;
-  border-radius: var(--radius-lg);
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  z-index: 2;
+  gap: 10px;
+  box-shadow: 0 10px 25px -4px rgba(79, 163, 209, 0.16), 0 6px 14px -3px rgba(255, 117, 143, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  z-index: 5;
   animation: floatSubtle 6s infinite ease-in-out;
+  pointer-events: none;
 }
 
 .badge-top-left {
-  top: -20px;
-  left: -28px;
+  top: 4px;
+  left: -20px;
 }
 
 .badge-bottom-right {
-  bottom: -20px;
-  right: -24px;
+  bottom: 4px;
+  right: -20px;
   animation-delay: -3s;
 }
 
@@ -1077,41 +1080,26 @@ ul {
 }
 
 .badge-icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  flex-shrink: 0;
 }
 
 .floating-badge strong {
   display: block;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   color: var(--text-main);
   line-height: 1.2;
 }
 
 .floating-badge small {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
-}
-
-.floating-sticker {
-  position: absolute;
-  font-size: 1.6rem;
-  z-index: 3;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.08));
-}
-
-.sticker-1 { top: 20%; right: -24px; animation: bounceRotate 5s infinite; }
-.sticker-2 { bottom: 15%; left: -26px; animation: bounceRotate 6s infinite reverse; }
-.sticker-3 { top: -25px; right: 25%; animation: bounceRotate 7s infinite; }
-
-@keyframes bounceRotate {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(8deg); }
 }
 
 /* ==========================================================================
