@@ -183,12 +183,200 @@ async function initializeAdminDashboard() {
   loadSqlSchemaPreview();
 }
 
+// =============================================================================
+// Admin Login - Loading Animation & Beautiful Popup
+// =============================================================================
+
+// สร้าง CSS สำหรับ Loading และ Popup
+function setupAdminLoginEffects() {
+  if (document.getElementById("adminLoginEffectsStyle")) return;
+
+  const style = document.createElement("style");
+  style.id = "adminLoginEffectsStyle";
+
+  style.textContent = `
+    .admin-login-loading {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255,255,255,0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: adminLoginSpin 0.75s linear infinite;
+      vertical-align: middle;
+      margin-right: 9px;
+    }
+
+    @keyframes adminLoginSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .admin-popup-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(35, 35, 55, 0.45);
+      backdrop-filter: blur(5px);
+      animation: adminPopupFade 0.2s ease;
+    }
+
+    .admin-popup-card {
+      width: 100%;
+      max-width: 360px;
+      padding: 32px 25px 25px;
+      border-radius: 24px;
+      background: #ffffff;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(30, 30, 60, 0.18);
+      animation: adminPopupEnter 0.3s ease;
+    }
+
+    .admin-popup-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 32px;
+    }
+
+    .admin-popup-icon.error {
+      color: #ff6687;
+      background: #fff0f3;
+    }
+
+    .admin-popup-icon.info {
+      color: #559de8;
+      background: #edf6ff;
+    }
+
+    .admin-popup-title {
+      margin: 0 0 10px;
+      color: #26334b;
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    .admin-popup-message {
+      margin: 0 0 24px;
+      color: #718096;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .admin-popup-button {
+      width: 100%;
+      padding: 13px 20px;
+      border: 0;
+      border-radius: 30px;
+      background: linear-gradient(135deg, #ff7293, #ff91aa);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(255, 114, 147, 0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .admin-popup-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 9px 20px rgba(255, 114, 147, 0.35);
+    }
+
+    @keyframes adminPopupFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes adminPopupEnter {
+      from {
+        opacity: 0;
+        transform: translateY(15px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+// Popup แจ้งเตือน
+function showAdminLoginPopup(title, message, type = "error") {
+  setupAdminLoginEffects();
+
+  const oldPopup = document.getElementById("adminLoginPopup");
+  if (oldPopup) oldPopup.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "adminLoginPopup";
+  overlay.className = "admin-popup-overlay";
+
+  const card = document.createElement("div");
+  card.className = "admin-popup-card";
+
+  const icon = document.createElement("div");
+  icon.className = `admin-popup-icon ${type}`;
+  icon.innerHTML = type === "error"
+    ? '<i class="fa-solid fa-circle-exclamation"></i>'
+    : '<i class="fa-solid fa-circle-info"></i>';
+
+  const heading = document.createElement("h3");
+  heading.className = "admin-popup-title";
+  heading.textContent = title;
+
+  const description = document.createElement("p");
+  description.className = "admin-popup-message";
+  description.textContent = message;
+
+  const button = document.createElement("button");
+  button.className = "admin-popup-button";
+  button.textContent = "ตกลง";
+  button.onclick = () => overlay.remove();
+
+  card.append(icon, heading, description, button);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  button.focus();
+}
+
+// =============================================================================
+// Admin Login
+// =============================================================================
+
 window.handleAdminLogin = async function () {
   const passcode = adminPasscode ? adminPasscode.value.trim() : "";
 
+  const loginButton = document.querySelector("#adminLoginForm button[type='submit']");
+
   if (!passcode) {
-    showAdminToast("กรุณากรอกรหัสผ่าน", "error");
+    showAdminLoginPopup(
+      "ยังไม่ได้กรอกรหัสผ่าน",
+      "กรุณากรอกรหัสผ่านผู้ดูแลระบบก่อนเข้าสู่ระบบ"
+    );
     return;
+  }
+
+  // แสดง Loading
+  const originalButtonHTML = loginButton ? loginButton.innerHTML : "";
+
+  if (loginButton) {
+    loginButton.disabled = true;
+    loginButton.style.opacity = "0.8";
+    loginButton.style.cursor = "wait";
+    loginButton.innerHTML = `
+      <span class="admin-login-loading"></span>
+      กำลังตรวจสอบ...
+    `;
   }
 
   try {
@@ -204,22 +392,37 @@ window.handleAdminLogin = async function () {
     const result = await response.json();
 
     if (!response.ok || !result.success) {
-      showAdminToast(result.message || "รหัสผ่านไม่ถูกต้อง", "error");
+      showAdminLoginPopup(
+        "รหัสผ่านไม่ถูกต้อง",
+        "กรุณาตรวจสอบรหัสผ่านของคุณอีกครั้ง แล้วลองเข้าสู่ระบบใหม่"
+      );
       return;
     }
 
     if (adminPasscode) adminPasscode.value = "";
 
-    showAdminToast("เข้าสู่ระบบผู้ดูแลเรียบร้อยแล้ว", "success");
-
     await initializeAdminDashboard();
+
+    showAdminToast("เข้าสู่ระบบผู้ดูแลเรียบร้อยแล้ว", "success");
 
   } catch (error) {
     console.error("Admin login error:", error);
-    showAdminToast("ไม่สามารถเชื่อมต่อระบบตรวจสอบรหัสผ่านได้", "error");
+
+    showAdminLoginPopup(
+      "ไม่สามารถเข้าสู่ระบบได้",
+      "เกิดปัญหาในการเชื่อมต่อ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง"
+    );
+
+  } finally {
+    // คืนค่าปุ่มให้เป็นปกติ
+    if (loginButton) {
+      loginButton.disabled = false;
+      loginButton.style.opacity = "1";
+      loginButton.style.cursor = "pointer";
+      loginButton.innerHTML = originalButtonHTML;
+    }
   }
 };
-
 window.handleAdminLogout = async function () {
   try {
     await fetch("/api/admin-logout", {
