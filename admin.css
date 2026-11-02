@@ -1284,3 +1284,175 @@ button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
   box-shadow: 0 4px 10px rgba(22, 101, 52, 0.2) !important;
   background-color: #DCFCE7 !important;
 }
+
+/* ==========================================================================
+   Freebies Management & Category Thumbnail Styles
+   ========================================================================== */
+.cat-table-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--border-card);
+  display: block;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.cat-table-thumb-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: var(--color-pink-light);
+  color: var(--color-pink-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.freebie-config-card {
+  background: var(--color-white);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.freebie-config-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #F43F5E, #EC4899, #8B5CF6);
+}
+
+.freebie-config-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.freebie-config-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #FFF1F2;
+  color: #F43F5E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.freebie-config-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.freebie-config-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.freebie-config-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.freebie-config-input-wrap {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.freebie-config-input-wrap i {
+  position: absolute;
+  left: 14px;
+  font-size: 1.1rem;
+  color: #0284C7;
+}
+
+.freebie-config-input-wrap input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: var(--radius-lg);
+  font-size: 0.92rem;
+  background: #F8FAFC;
+  transition: var(--transition);
+}
+
+.freebie-config-input-wrap input:focus {
+  border-color: var(--color-pink-primary);
+  background: #FFF;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12);
+}
+
+.freebie-config-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-send-gmail {
+  background-color: #EA4335 !important;
+  color: #FFF !important;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 2px 6px rgba(234, 67, 53, 0.25);
+}
+
+.btn-send-gmail:hover {
+  background-color: #D93025 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(234, 67, 53, 0.35);
+}
+
+.badge-freebie-pending {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge-freebie-sent {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}

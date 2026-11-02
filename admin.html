@@ -92,7 +92,7 @@
       </div>
     </header>
 
-    <!-- Navigation Tabs: Products / Categories / Orders -->
+    <!-- Navigation Tabs: Products / Categories / Orders / Freebies -->
     <nav class="admin-nav-tabs container">
       <button class="admin-tab-btn active" data-tab="products" onclick="window.switchAdminTab('products')">
         <i class="fa-solid fa-boxes-stacked"></i> จัดการสินค้า (Products)
@@ -103,6 +103,10 @@
       <button class="admin-tab-btn" data-tab="orders" onclick="window.switchAdminTab('orders')">
         <i class="fa-solid fa-cart-shopping"></i> จัดการคำสั่งซื้อ (Orders)
         <span class="order-badge-pill" id="pendingOrdersCountBadge" style="display: none;">0</span>
+      </button>
+      <button class="admin-tab-btn" data-tab="freebies" onclick="window.switchAdminTab('freebies')">
+        <i class="fa-solid fa-gift"></i> จัดการคำขอของขวัญฟรี (Freebies)
+        <span class="order-badge-pill" id="pendingFreebiesCountBadge" style="display: none;">0</span>
       </button>
     </nav>
 
@@ -231,7 +235,8 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th style="width: 80px;">ลำดับ</th>
+                  <th style="width: 70px;">ลำดับ</th>
+                  <th style="width: 70px;">รูปปก</th>
                   <th>ชื่อหมวดหมู่</th>
                   <th>Slug (รหัสอ้างอิง)</th>
                   <th>ประเภทสินค้า</th>
@@ -289,6 +294,116 @@
                 </tr>
               </thead>
               <tbody id="adminOrdersTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           TAB 4: FREEBIES MANAGEMENT (จัดการคำขอของขวัญฟรี, ตั้งค่า Drive Link, ส่ง Gmail)
+           ============================================================================== -->
+      <section class="admin-tab-content" id="tabContentFreebies" style="display: none;">
+        <div class="admin-top-bar">
+          <div>
+            <h1 class="page-title">จัดการคำขอรับของขวัญฟรี (Freebie Requests)</h1>
+            <p class="page-desc">ตรวจสอบรายชื่อลูกค้าที่ขอรับชุดใบงานฟรี ตั้งค่าลิงก์ Google Drive และกดส่งผ่าน Gmail ได้ในคลิกเดียว</p>
+          </div>
+        </div>
+
+        <!-- 1. Freebie Download URL Setting Card -->
+        <div class="freebie-config-card">
+          <div class="freebie-config-header">
+            <div class="freebie-config-icon">
+              <i class="fa-solid fa-cloud-arrow-down"></i>
+            </div>
+            <div>
+              <h3 class="freebie-config-title">ตั้งค่าลิงก์ดาวน์โหลดชุดใบงานฟรี (Google Drive / ลิงก์ไฟล์)</h3>
+              <p class="freebie-config-desc">
+                นำลิงก์แชร์จาก Google Drive (ตั้งสิทธิ์เป็น 'ทุกคนที่มีลิงก์มีสิทธิ์ดู/อ่าน') มาวางที่นี่ ระบบจะนำลิงก์นี้ไปใส่ในเนื้อหาอีเมล Gmail อัตโนมัติเมื่อกดส่ง
+              </p>
+            </div>
+          </div>
+
+          <div class="freebie-config-form">
+            <div class="freebie-config-input-wrap">
+              <i class="fa-brands fa-google-drive text-blue"></i>
+              <input type="url" id="freebieDownloadUrlInput" placeholder="https://drive.google.com/file/d/... หรือ ลิงก์โฟลเดอร์ Google Drive">
+            </div>
+            <div class="freebie-config-actions">
+              <button type="button" class="btn-primary" id="saveFreebieUrlBtn" onclick="window.handleSaveFreebieUrl()">
+                <i class="fa-solid fa-floppy-disk"></i> บันทึกลิงก์ของขวัญฟรี
+              </button>
+              <a href="#" id="testFreebieUrlLink" target="_blank" class="btn-secondary" style="display: none;">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> ทดสอบเปิดลิงก์
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Freebie Stats Cards -->
+        <div class="admin-stats-grid" style="margin-top: 24px;">
+          <div class="stat-card">
+            <div class="stat-icon-wrap bg-purple-light">
+              <i class="fa-solid fa-gift text-purple"></i>
+            </div>
+            <div>
+              <div class="stat-value" id="statTotalFreebies">0</div>
+              <div class="stat-label">คำขอทั้งหมด</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap bg-yellow-light">
+              <i class="fa-solid fa-clock text-yellow-dark"></i>
+            </div>
+            <div>
+              <div class="stat-value" id="statPendingFreebies">0</div>
+              <div class="stat-label">รอดำเนินการส่ง</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap bg-green-light">
+              <i class="fa-solid fa-paper-plane text-green"></i>
+            </div>
+            <div>
+              <div class="stat-value" id="statSentFreebies">0</div>
+              <div class="stat-label">จัดส่งของขวัญแล้ว</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Freebie Filter Toolbar -->
+        <div class="admin-toolbar-card">
+          <div class="admin-filter-pills" id="adminFreebieFilterPills">
+            <button class="admin-pill active" data-status="all">คำขอทั้งหมด</button>
+            <button class="admin-pill" data-status="pending"><i class="fa-solid fa-clock text-yellow-dark"></i> รอดำเนินการส่ง</button>
+            <button class="admin-pill" data-status="sent"><i class="fa-solid fa-circle-check text-green"></i> ส่งของขวัญแล้ว</button>
+          </div>
+
+          <div class="admin-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="adminFreebieSearchInput" placeholder="ค้นหาอีเมลลูกค้า...">
+          </div>
+        </div>
+
+        <!-- 4. Freebie Requests Table -->
+        <div class="admin-table-card">
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">ลำดับ</th>
+                  <th style="width: 170px;">วันที่-เวลาที่ขอ</th>
+                  <th>อีเมลลูกค้า (ผู้รับ)</th>
+                  <th>ของขวัญที่ขอ</th>
+                  <th style="width: 140px;">สถานะ</th>
+                  <th style="text-align: right; width: 220px;">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="adminFreebiesTableBody">
                 <!-- Dynamically populated -->
               </tbody>
             </table>
@@ -543,6 +658,25 @@
             <option value="image">🎨 รูปภาพดิจิทัล (Digital Art & Wallpapers)</option>
             <option value="worksheet">📄 ใบงานการเรียนรู้ (Worksheet)</option>
           </select>
+        </div>
+
+        <div class="form-group">
+          <label for="categoryCoverUrlInput" class="form-label">
+            <i class="fa-solid fa-image text-pink"></i> ลิงก์รูปภาพปกหมวดหมู่ (Google Drive / URL รูปภาพ)
+          </label>
+          <input type="url" id="categoryCoverUrlInput" placeholder="https://drive.google.com/file/d/... หรือ URL รูปภาพ" oninput="window.handleCategoryCoverInput(this.value)">
+          <small style="color: #64748B; font-size: 0.78rem; margin-top: 4px; display: block;">
+            💡 <strong>รองรับ Google Drive:</strong> นำลิงก์แชร์จาก Drive มาวางได้ทันที ระบบจะแปลงเป็นรูปภาพปกให้อัตโนมัติ เพื่อนำไปแสดงในหน้าหมวดหมู่ผลงาน
+          </small>
+          <div id="categoryCoverPreviewGroup" style="display: none; margin-top: 10px;">
+            <span style="font-size: 0.78rem; color: #64748B; display: block; margin-bottom: 4px;">ตัวอย่างรูปภาพปกหมวดหมู่:</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 80px; height: 80px; border-radius: 12px; overflow: hidden; border: 2px solid #FBCFE8; background: #FFF1F2; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <img id="categoryCoverPreviewImg" src="" alt="Category Preview" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+              </div>
+              <small style="color: #10B981; font-weight: 500;"><i class="fa-solid fa-circle-check"></i> แปลงลิงก์แสดงผลสำเร็จ</small>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">

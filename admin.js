@@ -97,6 +97,9 @@ const categoryNameInput = document.getElementById("categoryNameInput");
 const categorySlugInput = document.getElementById("categorySlugInput");
 const categoryProductTypeInput = document.getElementById("categoryProductTypeInput");
 const categorySortOrderInput = document.getElementById("categorySortOrderInput");
+const categoryCoverUrlInput = document.getElementById("categoryCoverUrlInput");
+const categoryCoverPreviewGroup = document.getElementById("categoryCoverPreviewGroup");
+const categoryCoverPreviewImg = document.getElementById("categoryCoverPreviewImg");
 
 // Tab 3: Orders Elements
 const adminOrdersTableBody = document.getElementById("adminOrdersTableBody");
@@ -109,6 +112,23 @@ const emailPreviewModal = document.getElementById("emailPreviewModal");
 const emailPreviewModalContent = document.getElementById("emailPreviewModalContent");
 const adminToastContainer = document.getElementById("adminToastContainer");
 
+// Tab 4: Freebies Elements
+const tabContentFreebies = document.getElementById("tabContentFreebies");
+const pendingFreebiesCountBadge = document.getElementById("pendingFreebiesCountBadge");
+const freebieDownloadUrlInput = document.getElementById("freebieDownloadUrlInput");
+const saveFreebieUrlBtn = document.getElementById("saveFreebieUrlBtn");
+const testFreebieUrlLink = document.getElementById("testFreebieUrlLink");
+const statTotalFreebies = document.getElementById("statTotalFreebies");
+const statPendingFreebies = document.getElementById("statPendingFreebies");
+const statSentFreebies = document.getElementById("statSentFreebies");
+const adminFreebieFilterPills = document.getElementById("adminFreebieFilterPills");
+const adminFreebieSearchInput = document.getElementById("adminFreebieSearchInput");
+const adminFreebiesTableBody = document.getElementById("adminFreebiesTableBody");
+
+let allFreebies = [];
+let currentFreebieFilter = "all";
+let currentFreebieSearch = "";
+
 // ==============================================================================
 // 1. Initialization & Authentication Gate
 // ==============================================================================
@@ -118,6 +138,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadCategories();
   await refreshProductsTable();
   await refreshOrdersTable();
+  await refreshFreebiesTable();
   setupEventListeners();
   loadSqlSchemaPreview();
 });
@@ -154,7 +175,7 @@ window.handleAdminLogout = function () {
 };
 
 // ==============================================================================
-// 2. Navigation Tabs (Products / Categories / Orders)
+// 2. Navigation Tabs (Products / Categories / Orders / Freebies)
 // ==============================================================================
 window.switchAdminTab = function (tabName) {
   currentAdminTab = tabName;
@@ -166,10 +187,14 @@ window.switchAdminTab = function (tabName) {
   document.getElementById("tabContentProducts").style.display = tabName === "products" ? "block" : "none";
   document.getElementById("tabContentCategories").style.display = tabName === "categories" ? "block" : "none";
   document.getElementById("tabContentOrders").style.display = tabName === "orders" ? "block" : "none";
+  if (document.getElementById("tabContentFreebies")) {
+    document.getElementById("tabContentFreebies").style.display = tabName === "freebies" ? "block" : "none";
+  }
 
   if (tabName === "products") refreshProductsTable();
   else if (tabName === "categories") renderCategoriesTable();
   else if (tabName === "orders") refreshOrdersTable();
+  else if (tabName === "freebies") refreshFreebiesTable();
 };
 
 function updateConnectionStatusUI() {
@@ -619,7 +644,7 @@ function renderCategoriesTable() {
   if (allCategories.length === 0) {
     adminCategoriesTableBody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align: center; padding: 48px; color: #94A3B8;">
+        <td colspan="6" style="text-align: center; padding: 48px; color: #94A3B8;">
           <i class="fa-solid fa-tags" style="font-size: 2rem; margin-bottom: 8px; display: block;"></i>
           ยังไม่มีหมวดหมู่สินค้า กดปุ่ม "+ เพิ่มหมวดหมู่ใหม่" ด้านบนเพื่อเริ่มต้น
         </td>
@@ -630,32 +655,52 @@ function renderCategoriesTable() {
 
   adminCategoriesTableBody.innerHTML = allCategories
     .map(
-      (cat, idx) => `
-    <tr>
-      <td><span style="font-weight: 600; color: #94A3B8;">#${cat.sort_order || idx + 1}</span></td>
-      <td><strong style="color: #334155; font-size: 0.95rem;">${cat.name}</strong></td>
-      <td><code style="background: #F1F5F9; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${cat.slug}</code></td>
-      <td>
-        <span class="type-badge ${cat.product_type === 'image' ? 'type-badge-image' : 'type-badge-worksheet'}">
-          <i class="fa-solid ${cat.product_type === 'image' ? 'fa-palette' : 'fa-book-open'}"></i>
-          ${cat.product_type === 'image' ? 'รูปภาพดิจิทัล' : 'ใบงานการเรียนรู้'}
-        </span>
-      </td>
-      <td>
-        <div class="table-actions">
-          <button class="action-icon-btn" onclick="window.editCategory('${cat.id}')" title="แก้ไขหมวดหมู่">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-          <button class="action-icon-btn delete-btn" onclick="window.deleteCategory('${cat.id}')" title="ลบหมวดหมู่">
-            <i class="fa-solid fa-trash-can"></i>
-          </button>
-        </div>
-      </td>
-    </tr>
-  `
+      (cat, idx) => {
+        const coverImg = cat.cover_image_url || cat.image_url;
+        const thumbHtml = coverImg
+          ? `<img src="${coverImg}" alt="${cat.name}" class="cat-table-thumb" onerror="this.outerHTML='<div class=\\'cat-table-thumb-placeholder\\'><i class=\\'fa-solid fa-folder\\'></i></div>';" />`
+          : `<div class="cat-table-thumb-placeholder"><i class="fa-solid fa-folder"></i></div>`;
+
+        return `
+        <tr>
+          <td><span style="font-weight: 600; color: #94A3B8;">#${cat.sort_order || idx + 1}</span></td>
+          <td>${thumbHtml}</td>
+          <td><strong style="color: #334155; font-size: 0.95rem;">${cat.name}</strong></td>
+          <td><code style="background: #F1F5F9; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${cat.slug}</code></td>
+          <td>
+            <span class="type-badge ${cat.product_type === 'image' ? 'type-badge-image' : 'type-badge-worksheet'}">
+              <i class="fa-solid ${cat.product_type === 'image' ? 'fa-palette' : 'fa-book-open'}"></i>
+              ${cat.product_type === 'image' ? 'รูปภาพดิจิทัล' : 'ใบงานการเรียนรู้'}
+            </span>
+          </td>
+          <td>
+            <div class="table-actions">
+              <button class="action-icon-btn" onclick="window.editCategory('${cat.id}')" title="แก้ไขหมวดหมู่">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button class="action-icon-btn delete-btn" onclick="window.deleteCategory('${cat.id}')" title="ลบหมวดหมู่">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      }
     )
     .join("");
 }
+
+window.handleCategoryCoverInput = function (val) {
+  if (!categoryCoverPreviewGroup || !categoryCoverPreviewImg) return;
+  const directUrl = window.wadfanData ? window.wadfanData.formatGoogleDriveImageUrl(val) : formatGoogleDriveImageUrl(val);
+  if (directUrl && (directUrl.startsWith("http://") || directUrl.startsWith("https://"))) {
+    categoryCoverPreviewImg.src = directUrl;
+    categoryCoverPreviewGroup.style.display = "block";
+  } else {
+    categoryCoverPreviewGroup.style.display = "none";
+    categoryCoverPreviewImg.src = "";
+  }
+};
 
 window.autoGenerateCategorySlug = function (text) {
   if (editingCategoryId) return;
@@ -674,15 +719,23 @@ function openCategoryModal(cat = null) {
 
   if (cat) {
     modalCategoryTitle.textContent = "แก้ไขหมวดหมู่";
-    categoryNameInput.value = cat.name;
-    categorySlugInput.value = cat.slug;
-    categoryProductTypeInput.value = cat.product_type;
+    categoryNameInput.value = cat.name || "";
+    categorySlugInput.value = cat.slug || "";
+    categoryProductTypeInput.value = cat.product_type || "image";
     categorySortOrderInput.value = cat.sort_order || 1;
+    if (categoryCoverUrlInput) {
+      categoryCoverUrlInput.value = cat.cover_image_url || cat.image_url || "";
+      window.handleCategoryCoverInput(categoryCoverUrlInput.value);
+    }
   } else {
     modalCategoryTitle.textContent = "เพิ่มหมวดหมู่ใหม่";
     document.getElementById("categoryForm").reset();
     formCategoryId.value = "";
     categorySortOrderInput.value = allCategories.length + 1;
+    if (categoryCoverUrlInput) {
+      categoryCoverUrlInput.value = "";
+      if (categoryCoverPreviewGroup) categoryCoverPreviewGroup.style.display = "none";
+    }
   }
 
   categoryModal.classList.add("open");
@@ -698,6 +751,7 @@ window.handleSaveCategory = async function () {
   const slug = categorySlugInput.value.trim().toLowerCase();
   const product_type = categoryProductTypeInput.value;
   const sort_order = parseInt(categorySortOrderInput.value) || 0;
+  const cover_image_url = categoryCoverUrlInput ? categoryCoverUrlInput.value.trim() : "";
 
   if (!name || !slug) {
     showAdminToast("กรุณากรอกชื่อและ Slug ของหมวดหมู่ให้ครบถ้วน", "error");
@@ -709,7 +763,8 @@ window.handleSaveCategory = async function () {
     name,
     slug,
     product_type,
-    sort_order
+    sort_order,
+    cover_image_url
   };
 
   const saveCatBtn = document.getElementById("saveCategoryBtn");
@@ -1430,7 +1485,205 @@ window.showEmailHistoryModal = function (orderId) {
 };
 
 // ==============================================================================
-// 6. Supabase Settings & SQL Modals
+// 6. TAB 4: Freebies Logic (จัดการคำขอของขวัญฟรี & ลิงก์ Drive & ส่ง Gmail)
+// ==============================================================================
+async function loadFreebieSettings() {
+  const url = await window.wadfanData.getFreebieDownloadUrl();
+  if (freebieDownloadUrlInput) freebieDownloadUrlInput.value = url || "";
+  if (testFreebieUrlLink) {
+    if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+      testFreebieUrlLink.href = url;
+      testFreebieUrlLink.style.display = "inline-flex";
+    } else {
+      testFreebieUrlLink.style.display = "none";
+    }
+  }
+}
+
+window.handleSaveFreebieUrl = async function () {
+  const urlVal = freebieDownloadUrlInput ? freebieDownloadUrlInput.value.trim() : "";
+  if (!urlVal) {
+    showAdminToast("กรุณากรอก URL ลิงก์ดาวน์โหลดของขวัญฟรี", "error");
+    return;
+  }
+
+  const saveBtn = document.getElementById("saveFreebieUrlBtn");
+  const origText = saveBtn ? saveBtn.innerHTML : "";
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> บันทึก...`;
+  }
+
+  try {
+    await window.wadfanData.saveFreebieDownloadUrl(urlVal);
+    showAdminToast("บันทึก URL ลิงก์ของขวัญฟรีเรียบร้อยแล้ว!", "success");
+    if (testFreebieUrlLink) {
+      testFreebieUrlLink.href = urlVal;
+      testFreebieUrlLink.style.display = "inline-flex";
+    }
+  } catch (err) {
+    showAdminToast(`เกิดข้อผิดพลาด: ${err.message}`, "error");
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = origText;
+    }
+  }
+};
+
+async function refreshFreebiesTable() {
+  await loadFreebieSettings();
+  allFreebies = await window.wadfanData.getFreebieRequests();
+
+  // Update Pending Badge
+  const pendingCount = allFreebies.filter((f) => f.status === "pending").length;
+  if (pendingFreebiesCountBadge) {
+    if (pendingCount > 0) {
+      pendingFreebiesCountBadge.textContent = pendingCount;
+      pendingFreebiesCountBadge.style.display = "inline-block";
+    } else {
+      pendingFreebiesCountBadge.style.display = "none";
+    }
+  }
+
+  // Update Stats Cards
+  if (statTotalFreebies) statTotalFreebies.textContent = allFreebies.length;
+  if (statPendingFreebies) statPendingFreebies.textContent = pendingCount;
+  if (statSentFreebies) statSentFreebies.textContent = allFreebies.filter((f) => f.status === "sent").length;
+
+  renderFreebiesTable();
+}
+
+function renderFreebiesTable() {
+  if (!adminFreebiesTableBody) return;
+
+  let filtered = allFreebies;
+
+  // Filter by status
+  if (currentFreebieFilter !== "all") {
+    filtered = filtered.filter((f) => f.status === currentFreebieFilter);
+  }
+
+  // Filter by search query
+  if (currentFreebieSearch) {
+    const q = currentFreebieSearch.toLowerCase();
+    filtered = filtered.filter((f) => (f.email || "").toLowerCase().includes(q));
+  }
+
+  if (filtered.length === 0) {
+    adminFreebiesTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 48px; color: #94A3B8;">
+          <i class="fa-solid fa-gift" style="font-size: 2rem; margin-bottom: 8px; display: block;"></i>
+          ${currentFreebieSearch ? "ไม่พบคำขอที่ตรงกับคำค้นหา" : "ยังไม่มีคำขอรับของขวัญฟรีในหมวดนี้"}
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  adminFreebiesTableBody.innerHTML = filtered
+    .map((req, idx) => {
+      const createdDate = req.created_at ? new Date(req.created_at).toLocaleString("th-TH") : "-";
+      const isPending = req.status === "pending";
+      const statusBadge = isPending
+        ? `<span class="badge-freebie-pending"><i class="fa-solid fa-clock"></i> รอดำเนินการ</span>`
+        : `<span class="badge-freebie-sent"><i class="fa-solid fa-circle-check"></i> จัดส่งแล้ว</span>`;
+
+      return `
+      <tr>
+        <td><span style="font-weight: 600; color: #94A3B8;">#${idx + 1}</span></td>
+        <td style="font-size: 0.85rem; color: #64748B;">${createdDate}</td>
+        <td>
+          <strong style="color: #1E293B; font-size: 0.95rem;">${req.email}</strong>
+        </td>
+        <td>
+          <span style="font-size: 0.85rem; background: #FFF1F2; color: #E11D48; padding: 3px 8px; border-radius: 6px; font-weight: 500;">
+            🎁 ชุดใบงานการเรียนรู้ฟรี
+          </span>
+        </td>
+        <td>${statusBadge}</td>
+        <td>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-send-gmail" onclick="window.handleSendFreebieGmail('${req.id}')" title="ส่งของขวัญฟรีให้ลูกค้าผ่าน Gmail">
+              <i class="fa-brands fa-google"></i> ส่ง Gmail
+            </button>
+            <button class="action-icon-btn" onclick="window.handleToggleFreebieStatus('${req.id}')" title="${isPending ? 'เปลี่ยนเป็นส่งแล้ว' : 'เปลี่ยนเป็นรอดำเนินการ'}">
+              <i class="fa-solid ${isPending ? 'fa-check' : 'fa-rotate-left'}"></i>
+            </button>
+            <button class="action-icon-btn delete-btn" onclick="window.handleDeleteFreebie('${req.id}')" title="ลบคำขอ">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+    })
+    .join("");
+}
+
+window.handleSendFreebieGmail = async function (requestId) {
+  const req = allFreebies.find((f) => String(f.id) === String(requestId));
+  if (!req) return;
+
+  const freebieDownloadUrl = await window.wadfanData.getFreebieDownloadUrl();
+  const customerEmail = req.email.trim();
+  const subject = "ของขวัญพิเศษจาก Wadfan Studio: ลิงก์ดาวน์โหลดชุดใบงานการเรียนรู้ฟรี 🎁";
+  const bodyText = `สวัสดีค่ะคุณลูกค้า,
+
+ขอขอบคุณที่ร่วมเป็นส่วนหนึ่งกับ Wadfan Studio (วาดฝัน สตูดิโอ) ค่ะ! 🎨✨
+
+ตามที่คุณได้ลงทะเบียนขอรับชุดใบงานการเรียนรู้ฟรีไว้ คุณสามารถกดดาวน์โหลดชุดใบงานพัฒนาทักษะ (ไฟล์ PDF คุณภาพคมชัดระดับ 300 DPI สามารถสั่งพิมพ์ได้ทันที) ผ่าน Google Drive ได้ที่ลิงก์นี้เลยนะคะ:
+
+🔗 ลิงก์ดาวน์โหลดชุดใบงานฟรี:
+${freebieDownloadUrl}
+
+(สามารถคลิกเปิดและดาวน์โหลดไฟล์เก็บไว้ในอุปกรณ์ของคุณได้ตลอดเวลาค่ะ)
+
+หากมีข้อสงสัยหรือต้องการสอบถามผลงาน/สื่อการเรียนรู้เพิ่มเติม สามารถตอบกลับอีเมลนี้ หรือติดต่อเราทาง LINE @wadfanstudio ได้เสมอนะคะ
+
+ด้วยความปรารถนาดี,
+ทีมงาน Wadfan Studio
+เว็บไซต์: https://wadfanstudio.vercel.app`;
+
+  const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+
+  // Open Gmail in new tab
+  window.open(gmailComposeUrl, "_blank");
+
+  // Automatically update status to sent in background
+  try {
+    await window.wadfanData.markFreebieSent(requestId, freebieDownloadUrl);
+    showAdminToast(`เปิด Gmail ส่งของขวัญให้ ${customerEmail} เรียบร้อยแล้ว (อัปเดตสถานะเป็นส่งแล้ว)`, "success");
+    await refreshFreebiesTable();
+  } catch (err) {
+    console.error("Mark freebie sent error:", err);
+  }
+};
+
+window.handleToggleFreebieStatus = async function (requestId) {
+  const req = allFreebies.find((f) => String(f.id) === String(requestId));
+  if (!req) return;
+
+  const newStatus = req.status === "pending" ? "sent" : "pending";
+  await window.wadfanData.toggleFreebieStatus(requestId, newStatus);
+  showAdminToast(`อัปเดตสถานะคำขอเป็น "${newStatus === 'sent' ? 'ส่งแล้ว' : 'รอดำเนินการ'}"`, "info");
+  await refreshFreebiesTable();
+};
+
+window.handleDeleteFreebie = async function (requestId) {
+  const req = allFreebies.find((f) => String(f.id) === String(requestId));
+  if (!req) return;
+
+  if (!confirm(`คุณต้องการลบคำขอของ "${req.email}" หรือไม่?`)) return;
+
+  await window.wadfanData.deleteFreebieRequest(requestId);
+  showAdminToast("ลบคำขอรับของขวัญฟรีเรียบร้อยแล้ว", "info");
+  await refreshFreebiesTable();
+};
+
+// ==============================================================================
+// 7. Supabase Settings & SQL Modals
 // ==============================================================================
 function setupEventListeners() {
   // Product Filter
@@ -1520,6 +1773,45 @@ function setupEventListeners() {
   // Category Triggers
   if (addNewCategoryBtn) addNewCategoryBtn.addEventListener("click", () => openCategoryModal());
   if (closeCategoryModalBtn) closeCategoryModalBtn.addEventListener("click", () => categoryModal.classList.remove("open"));
+
+  // Category Cover Live Converter & Preview
+  if (categoryCoverUrlInput) {
+    const handleCatCover = (e) => {
+      const val = e.target.value;
+      const converted = formatGoogleDriveImageUrl(val);
+      if (converted !== val && converted.includes("googleusercontent.com")) {
+        e.target.value = converted;
+      }
+      window.handleCategoryCoverInput(e.target.value);
+    };
+
+    categoryCoverUrlInput.addEventListener("input", handleCatCover);
+    categoryCoverUrlInput.addEventListener("change", handleCatCover);
+    categoryCoverUrlInput.addEventListener("paste", () => {
+      setTimeout(() => {
+        handleCatCover({ target: categoryCoverUrlInput });
+      }, 60);
+    });
+  }
+
+  // Freebie Filter & Search Triggers
+  if (adminFreebieFilterPills) {
+    adminFreebieFilterPills.addEventListener("click", (e) => {
+      const pill = e.target.closest(".admin-pill");
+      if (!pill) return;
+      document.querySelectorAll("#adminFreebieFilterPills .admin-pill").forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      currentFreebieFilter = pill.dataset.status;
+      renderFreebiesTable();
+    });
+  }
+
+  if (adminFreebieSearchInput) {
+    adminFreebieSearchInput.addEventListener("input", (e) => {
+      currentFreebieSearch = e.target.value;
+      renderFreebiesTable();
+    });
+  }
 
   // Supabase Settings
   if (supabaseSettingsBtn) supabaseSettingsBtn.addEventListener("click", openSupabaseModal);

@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS public.categories (
 
 -- เพิ่มคอลัมน์ให้อัตโนมัติ กรณีที่มีตาราง categories เดิมอยู่แล้ว
 ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS cover_image_url TEXT;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 
 -- 2. ตารางสินค้าหลัก (Products)
@@ -113,14 +115,35 @@ ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS product_type TEXT DEFAUL
 ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS download_url TEXT;
 
 
+-- 5. ตารางคำขอรับชุดใบงาน/ของขวัญฟรี (Freebie Requests)
+CREATE TABLE IF NOT EXISTS public.freebie_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent')),
+    gift_type TEXT DEFAULT 'worksheet',
+    download_url TEXT,
+    sent_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ตารางการตั้งค่าระบบ (System Settings) สำหรับเก็บ Freebie Download URL และการตั้งค่าอื่นๆ
+CREATE TABLE IF NOT EXISTS public.system_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+
 -- ==============================================================================
--- 5. Row Level Security (RLS) & นโยบายความปลอดภัย
+-- 6. Row Level Security (RLS) & นโยบายความปลอดภัย
 -- ==============================================================================
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_variants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.freebie_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
 
 -- ลบนโยบายเดิมก่อนสร้างใหม่ ป้องกัน policy already exists error
 DROP POLICY IF EXISTS "Public categories are viewable" ON public.categories;
@@ -162,6 +185,12 @@ CREATE POLICY "Allow anon all variants" ON public.product_variants FOR ALL USING
 
 CREATE POLICY "Allow anon all orders" ON public.orders FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow anon all order_items" ON public.order_items FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon all freebie_requests" ON public.freebie_requests;
+CREATE POLICY "Allow anon all freebie_requests" ON public.freebie_requests FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon all system_settings" ON public.system_settings;
+CREATE POLICY "Allow anon all system_settings" ON public.system_settings FOR ALL USING (true) WITH CHECK (true);
 
 
 -- ==============================================================================

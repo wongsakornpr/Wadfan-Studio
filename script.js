@@ -130,13 +130,27 @@ function renderCategoriesGrid() {
   categoriesGrid.innerHTML = categoriesList
     .map((c, idx) => {
       const palette = iconPalette[idx % iconPalette.length];
-      const typeLabel = c.product_type === "image" ? "รูปภาพดิจิทัล" : "ใบงานเด็ก";
+      const typeLabel = c.product_type === "image" ? "รูปภาพดิจิทัล" : "ใบงานการเรียนรู้";
 
-      return `
-      <div class="category-card" onclick="window.filterByCategorySlug('${c.slug}')">
+      const coverUrl = c.cover_image_url || c.image_url;
+      const visualElement = coverUrl
+        ? `
+        <div class="cat-cover-wrapper">
+          <img src="${coverUrl}" alt="${c.name}" class="cat-cover-img" loading="lazy" onerror="this.closest('.cat-cover-wrapper').style.display='none'; const fb = this.closest('.category-card').querySelector('.cat-icon-fallback'); if (fb) fb.style.display='flex';" />
+        </div>
+        <div class="cat-icon-wrapper cat-icon-fallback ${palette.bg}" style="display: none;">
+          <span class="cat-emoji">${palette.icon}</span>
+        </div>
+        `
+        : `
         <div class="cat-icon-wrapper ${palette.bg}">
           <span class="cat-emoji">${palette.icon}</span>
         </div>
+        `;
+
+      return `
+      <div class="category-card" onclick="window.filterByCategorySlug('${c.slug}')">
+        ${visualElement}
         <h3>${c.name}</h3>
         <p>คลิกเพื่อเลือกชมผลงานในหมวดหมู่นี้</p>
         <span class="cat-count">${typeLabel}</span>
@@ -917,15 +931,36 @@ window.handleOrderSubmit = async function () {
   }
 };
 
-function handleFreebieSubmit() {
+async function handleFreebieSubmit() {
   const emailVal = freebieEmail ? freebieEmail.value.trim() : "";
-  if (!emailVal || !emailVal.includes("@")) {
-    showToast("กรุณากรอกอีเมลที่ถูกต้องเพื่อรับไฟล์ของขวัญ", "info");
+  if (!emailVal || !emailVal.includes("@") || !emailVal.includes(".")) {
+    showToast("กรุณากรอกอีเมลที่ถูกต้องเพื่อรับชุดใบงานฟรี", "info");
     return;
   }
 
-  showToast(`✨ ส่งลิงก์ดาวน์โหลดของขวัญ Google Drive ฟรีไปยัง ${emailVal} แล้ว!`, "success");
-  if (freebieEmail) freebieEmail.value = "";
+  const origBtnContent = freebieSubmitBtn ? freebieSubmitBtn.innerHTML : "";
+  if (freebieSubmitBtn) {
+    freebieSubmitBtn.disabled = true;
+    freebieSubmitBtn.innerHTML = `<span>กำลังบันทึกคำขอ...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
+  }
+
+  try {
+    const res = await window.wadfanData.createFreebieRequest(emailVal);
+    if (res.success) {
+      showToast(`🎉 บันทึกคำขอเรียบร้อยแล้ว! แอดมินจะจัดส่งลิงก์ดาวน์โหลดชุดใบงานฟรีไปยังอีเมล ${emailVal} ให้เร็วที่สุดค่ะ`, "success");
+      if (freebieEmail) freebieEmail.value = "";
+    } else {
+      showToast(res.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง", "error");
+    }
+  } catch (err) {
+    console.error("Freebie submit error:", err);
+    showToast("เกิดข้อผิดพลาดในการส่งคำขอ กรุณาลองใหม่อีกครั้ง", "error");
+  } finally {
+    if (freebieSubmitBtn) {
+      freebieSubmitBtn.disabled = false;
+      freebieSubmitBtn.innerHTML = origBtnContent;
+    }
+  }
 }
 
 // ==============================================================================

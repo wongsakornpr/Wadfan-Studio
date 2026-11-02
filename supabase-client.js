@@ -319,16 +319,26 @@ class WadfanDataProvider {
         console.error("Supabase fetch categories error:", error);
         throw error;
       }
-      return data || [];
+      return (data || []).map((cat) => ({
+        ...cat,
+        cover_image_url: this.formatGoogleDriveImageUrl(cat.cover_image_url || cat.image_url || "")
+      }));
     }
 
-    const local = JSON.parse(localStorage.getItem("wadfan_categories") || "[]");
+    let local = JSON.parse(localStorage.getItem("wadfan_categories") || "[]");
+    local = local.map((cat) => ({
+      ...cat,
+      cover_image_url: this.formatGoogleDriveImageUrl(cat.cover_image_url || cat.image_url || "")
+    }));
     if (!typeFilter || typeFilter === "all") return local;
     return local.filter((c) => c.product_type === typeFilter);
   }
 
   async saveCategory(categoryData) {
     const isEdit = Boolean(categoryData.id);
+    const formattedCover = categoryData.cover_image_url
+      ? this.formatGoogleDriveImageUrl(categoryData.cover_image_url)
+      : "";
 
     if (this.isSupabaseConnected) {
       try {
@@ -336,23 +346,53 @@ class WadfanDataProvider {
           name: categoryData.name.trim(),
           slug: categoryData.slug.trim().toLowerCase(),
           product_type: categoryData.product_type,
-          sort_order: parseInt(categoryData.sort_order) || 0
+          sort_order: parseInt(categoryData.sort_order) || 0,
+          cover_image_url: formattedCover,
+          image_url: formattedCover
         };
 
         if (isEdit) {
-          const { error } = await this.supabaseClient
+          let { error } = await this.supabaseClient
             .from("categories")
             .update(payload)
             .eq("id", categoryData.id);
-          if (error) throw error;
+
+          // Graceful fallback if cover_image_url column not yet added to Supabase
+          if (error && (error.message.includes("cover_image_url") || error.message.includes("image_url") || error.code === "PGRST204" || error.code === "42703")) {
+            console.warn("Cover image column not yet in Supabase categories, updating base fields:", error.message);
+            const fallbackPayload = {
+              name: payload.name,
+              slug: payload.slug,
+              product_type: payload.product_type,
+              sort_order: payload.sort_order
+            };
+            const retryRes = await this.supabaseClient.from("categories").update(fallbackPayload).eq("id", categoryData.id);
+            if (retryRes.error) throw retryRes.error;
+          } else if (error) {
+            throw error;
+          }
           return { success: true, id: categoryData.id };
         } else {
-          const { data, error } = await this.supabaseClient
+          let { data, error } = await this.supabaseClient
             .from("categories")
             .insert([payload])
             .select()
             .single();
-          if (error) throw error;
+
+          if (error && (error.message.includes("cover_image_url") || error.message.includes("image_url") || error.code === "PGRST204" || error.code === "42703")) {
+            console.warn("Cover image column not yet in Supabase categories, inserting base fields:", error.message);
+            const fallbackPayload = {
+              name: payload.name,
+              slug: payload.slug,
+              product_type: payload.product_type,
+              sort_order: payload.sort_order
+            };
+            const retryRes = await this.supabaseClient.from("categories").insert([fallbackPayload]).select().single();
+            if (retryRes.error) throw retryRes.error;
+            data = retryRes.data;
+          } else if (error) {
+            throw error;
+          }
           return { success: true, id: data.id };
         }
       } catch (err) {
@@ -363,7 +403,13 @@ class WadfanDataProvider {
     // Local Storage
     const local = JSON.parse(localStorage.getItem("wadfan_categories") || "[]");
     const targetId = isEdit ? categoryData.id : "cat-" + Date.now();
-    const item = { ...categoryData, id: targetId, sort_order: parseInt(categoryData.sort_order) || 0 };
+    const item = {
+      ...categoryData,
+      id: targetId,
+      sort_order: parseInt(categoryData.sort_order) || 0,
+      cover_image_url: formattedCover,
+      image_url: formattedCover
+    };
 
     if (isEdit) {
       const idx = local.findIndex((c) => c.id === targetId);
@@ -967,6 +1013,199 @@ class WadfanDataProvider {
       localStorage.setItem("wadfan_orders", JSON.stringify(local));
     }
     return { success: true, emailSent: emailSentItem };
+  }
+
+  // ==============================================================================
+  // 5. Freebies Management (คำขอรับชุดใบงานฟรี & ตั้งค่าลิงก์ดาวน์โหลด)
+  // ==============================================================================
+  async getFreebieDownloadUrl() {
+    const defaultUrl = "https://drive.google.com/file/d/1Wadfan_Sample_Worksheet_Freebie/view?usp=sharing";
+    const local = localStorage.getItem("wadfan_freebie_download_url");
+    if (local && local.trim()) return local.trim();
+
+    if (this.isSupabaseConnected) {
+      try {
+        const { data, error } = await this.supabaseClient
+          .from("system_settings")
+          .select("value")
+          .eq("key", "freebie_download_url")
+          .maybeSingle();
+        if (!error && data && data.value) {
+          localStorage.setItem("wadfan_freebie_download_url", data.value);
+          return data.value;
+        }
+      } catch (e) {
+        console.warn("Could not fetch freebie download url from Supabase:", e);
+      }
+    }
+
+    return defaultUrl;
+  }
+
+  async saveFreebieDownloadUrl(url) {
+    const trimmed = (url || "").trim();
+    localStorage.setItem("wadfan_freebie_download_url", trimmed);
+
+    if (this.isSupabaseConnected) {
+      try {
+        await this.supabaseClient
+          .from("system_settings")
+          .upsert({
+            key: "freebie_download_url",
+            value: trimmed,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "key" });
+      } catch (e) {
+        console.warn("Could not save freebie url to Supabase system_settings:", e);
+      }
+    }
+    return { success: true, url: trimmed };
+  }
+
+  async getFreebieRequests(filterStatus = null) {
+    if (this.isSupabaseConnected) {
+      try {
+        let query = this.supabaseClient
+          .from("freebie_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (filterStatus && filterStatus !== "all") {
+          query = query.eq("status", filterStatus);
+        }
+
+        const { data, error } = await query;
+        if (!error && data) {
+          try {
+            if (!filterStatus || filterStatus === "all") {
+              localStorage.setItem("wadfan_freebie_requests", JSON.stringify(data));
+            }
+          } catch (e) {}
+          return data;
+        }
+      } catch (e) {
+        console.warn("Supabase freebie_requests error, falling back to localStorage:", e);
+      }
+    }
+
+    let local = JSON.parse(localStorage.getItem("wadfan_freebie_requests") || "[]");
+    if (filterStatus && filterStatus !== "all") {
+      local = local.filter((r) => r.status === filterStatus);
+    }
+    return local;
+  }
+
+  async createFreebieRequest(email) {
+    const trimmedEmail = (email || "").trim();
+    if (!trimmedEmail) return { success: false, message: "กรุณาระบุอีเมล" };
+
+    const payload = {
+      email: trimmedEmail,
+      status: "pending",
+      gift_type: "worksheet",
+      created_at: new Date().toISOString()
+    };
+
+    if (this.isSupabaseConnected) {
+      try {
+        const { data, error } = await this.supabaseClient
+          .from("freebie_requests")
+          .insert([payload])
+          .select()
+          .single();
+
+        if (!error && data) {
+          const local = JSON.parse(localStorage.getItem("wadfan_freebie_requests") || "[]");
+          local.unshift(data);
+          localStorage.setItem("wadfan_freebie_requests", JSON.stringify(local));
+          return { success: true, data };
+        }
+      } catch (e) {
+        console.warn("Supabase create freebie request error, saving locally:", e);
+      }
+    }
+
+    // Local Storage Fallback
+    const local = JSON.parse(localStorage.getItem("wadfan_freebie_requests") || "[]");
+    const newRequest = {
+      ...payload,
+      id: "freebie-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5)
+    };
+    local.unshift(newRequest);
+    localStorage.setItem("wadfan_freebie_requests", JSON.stringify(local));
+    return { success: true, data: newRequest };
+  }
+
+  async markFreebieSent(requestId, downloadUrl = "") {
+    const sentAt = new Date().toISOString();
+
+    if (this.isSupabaseConnected) {
+      try {
+        const updatePayload = {
+          status: "sent",
+          sent_at: sentAt
+        };
+        if (downloadUrl) updatePayload.download_url = downloadUrl;
+
+        await this.supabaseClient
+          .from("freebie_requests")
+          .update(updatePayload)
+          .eq("id", requestId);
+      } catch (e) {
+        console.warn("Supabase mark freebie sent error, updating locally:", e);
+      }
+    }
+
+    const local = JSON.parse(localStorage.getItem("wadfan_freebie_requests") || "[]");
+    const idx = local.findIndex((r) => String(r.id) === String(requestId));
+    if (idx !== -1) {
+      local[idx].status = "sent";
+      local[idx].sent_at = sentAt;
+      if (downloadUrl) local[idx].download_url = downloadUrl;
+      localStorage.setItem("wadfan_freebie_requests", JSON.stringify(local));
+    }
+    return { success: true, sent_at: sentAt };
+  }
+
+  async toggleFreebieStatus(requestId, newStatus) {
+    const updatePayload = {
+      status: newStatus,
+      sent_at: newStatus === "sent" ? new Date().toISOString() : null
+    };
+
+    if (this.isSupabaseConnected) {
+      try {
+        await this.supabaseClient
+          .from("freebie_requests")
+          .update(updatePayload)
+          .eq("id", requestId);
+      } catch (e) {}
+    }
+
+    const local = JSON.parse(localStorage.getItem("wadfan_freebie_requests") || "[]");
+    const idx = local.findIndex((r) => String(r.id) === String(requestId));
+    if (idx !== -1) {
+      local[idx].status = newStatus;
+      local[idx].sent_at = updatePayload.sent_at;
+      localStorage.setItem("wadfan_freebie_requests", JSON.stringify(local));
+    }
+    return { success: true };
+  }
+
+  async deleteFreebieRequest(requestId) {
+    if (this.isSupabaseConnected) {
+      try {
+        await this.supabaseClient
+          .from("freebie_requests")
+          .delete()
+          .eq("id", requestId);
+      } catch (e) {}
+    }
+
+    let local = JSON.parse(localStorage.getItem("wadfan_freebie_requests") || "[]");
+    local = local.filter((r) => String(r.id) !== String(requestId));
+    localStorage.setItem("wadfan_freebie_requests", JSON.stringify(local));
+    return { success: true };
   }
 }
 
