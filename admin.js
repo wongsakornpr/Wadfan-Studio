@@ -458,11 +458,18 @@ window.switchAdminTab = function (tabName) {
   if (document.getElementById("tabContentFreebies")) {
     document.getElementById("tabContentFreebies").style.display = tabName === "freebies" ? "block" : "none";
   }
+  if (document.getElementById("tabContentLanding")) {
+    document.getElementById("tabContentLanding").style.display = tabName === "landing" ? "block" : "none";
+  }
+  if (document.getElementById("tabContentReviews")) {
+    document.getElementById("tabContentReviews").style.display = tabName === "reviews" ? "block" : "none";
+  }
 
   if (tabName === "products") refreshProductsTable();
   else if (tabName === "categories") renderCategoriesTable();
   else if (tabName === "orders") refreshOrdersTable();
   else if (tabName === "freebies") refreshFreebiesTable();
+  else if (tabName === "landing" || tabName === "reviews") loadSiteManagement();
 };
 
 function updateConnectionStatusUI() {
@@ -1934,6 +1941,361 @@ window.handleDeleteFreebie = async function (requestId) {
   await window.wadfanData.deleteFreebieRequest(requestId);
   showAdminToast("ลบคำขอรับของขวัญฟรีเรียบร้อยแล้ว", "info");
   await refreshFreebiesTable();
+};
+
+
+// =============================================================================
+// 6.5. Landing Page & Customer Reviews Management (Vercel API)
+// =============================================================================
+
+let siteManagementData = {
+  content: [],
+  features: [],
+  faqs: [],
+  reviews: []
+};
+
+const landingContentFields = [
+  ["hero_title", "หัวข้อหลักหน้าแรก (Hero Title)"],
+  ["hero_description", "คำอธิบายหน้าแรก (Hero Description)"],
+  ["freebie_title", "หัวข้อแบนเนอร์ของขวัญฟรี"],
+  ["freebie_description", "คำอธิบายแบนเนอร์ของขวัญฟรี"],
+  ["features_subtitle", "ข้อความเล็กเหนือหัวข้อ Features"],
+  ["features_title", "หัวข้อส่วนจุดเด่นของร้าน"],
+  ["features_description", "คำอธิบายส่วนจุดเด่นของร้าน"],
+  ["faq_subtitle", "ข้อความเล็กเหนือหัวข้อ FAQ"],
+  ["faq_title", "หัวข้อส่วนคำถามที่พบบ่อย"],
+  ["faq_description", "คำอธิบายส่วนคำถามที่พบบ่อย"]
+];
+
+function siteEscape(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[char]));
+}
+
+async function siteApiGet(view = "admin") {
+  const response = await fetch(`/api/site?view=${encodeURIComponent(view)}`, {
+    method: "GET",
+    credentials: "same-origin"
+  });
+  const result = await response.json();
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "ไม่สามารถโหลดข้อมูลได้");
+  }
+  return result;
+}
+
+async function siteApiPost(payload) {
+  const response = await fetch("/api/site", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "บันทึกข้อมูลไม่สำเร็จ");
+  }
+  return result;
+}
+
+window.loadSiteManagement = async function () {
+  const landing = document.getElementById("landingManagementContent");
+  const reviews = document.getElementById("reviewsManagementContent");
+
+  if (landing) landing.innerHTML = '<div class="admin-table-card" style="padding:24px;">กำลังโหลดข้อมูล...</div>';
+  if (reviews) reviews.innerHTML = '<div class="admin-table-card" style="padding:24px;">กำลังโหลดข้อมูล...</div>';
+
+  try {
+    siteManagementData = await siteApiGet("admin");
+    renderLandingManagement();
+    renderReviewsManagement();
+
+    const pending = siteManagementData.reviews.filter(r => r.status === "pending").length;
+    const badge = document.getElementById("pendingReviewsCountBadge");
+    if (badge) {
+      badge.textContent = pending;
+      badge.style.display = pending ? "inline-block" : "none";
+    }
+  } catch (error) {
+    console.error("Load site management error:", error);
+    const message = siteEscape(error.message);
+    if (landing) landing.innerHTML = `<div class="admin-table-card" style="padding:24px;color:#dc2626;">โหลดข้อมูลไม่สำเร็จ: ${message}</div>`;
+    if (reviews) reviews.innerHTML = `<div class="admin-table-card" style="padding:24px;color:#dc2626;">โหลดข้อมูลไม่สำเร็จ: ${message}</div>`;
+    showAdminToast("โหลดข้อมูล Landing Page / รีวิวไม่สำเร็จ", "error");
+  }
+};
+
+function renderLandingManagement() {
+  const root = document.getElementById("landingManagementContent");
+  if (!root) return;
+
+  const contentMap = Object.fromEntries(
+    (siteManagementData.content || []).map(row => [row.content_key, row.content_value])
+  );
+
+  const contentForm = landingContentFields.map(([key, label]) => `
+    <div class="form-group" style="margin-bottom:16px;">
+      <label class="form-label" for="site-content-${key}">${siteEscape(label)}</label>
+      <textarea id="site-content-${key}" data-content-key="${key}" rows="${key.includes("description") ? 3 : 2}"
+        style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font:inherit;resize:vertical;"
+        placeholder="กรอก${siteEscape(label)}">${siteEscape(contentMap[key] || "")}</textarea>
+    </div>
+  `).join("");
+
+  const features = (siteManagementData.features || []).map(item => `
+    <div class="admin-table-card" style="padding:16px;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns: minmax(100px, 1fr) minmax(180px, 2fr);gap:12px;">
+        <label class="form-group">ไอคอน (Font Awesome)
+          <input data-feature-icon="${item.id}" value="${siteEscape(item.icon)}" placeholder="fa-palette" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
+        </label>
+        <label class="form-group">หัวข้อ
+          <input data-feature-title="${item.id}" value="${siteEscape(item.title)}" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
+        </label>
+      </div>
+      <label class="form-group">คำอธิบาย
+        <textarea data-feature-description="${item.id}" rows="2" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">${siteEscape(item.description)}</textarea>
+      </label>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+        <label>ลำดับ <input type="number" data-feature-order="${item.id}" value="${Number(item.sort_order) || 0}" style="width:75px;padding:7px;border:1px solid #e2e8f0;border-radius:8px;"></label>
+        <label><input type="checkbox" data-feature-active="${item.id}" ${item.is_active ? "checked" : ""}> แสดงบนหน้าร้าน</label>
+        <button class="btn-primary" type="button" onclick="window.saveSiteFeature('${item.id}')">บันทึก</button>
+        <button class="btn-secondary" type="button" onclick="window.deleteSiteFeature('${item.id}')">ลบ</button>
+      </div>
+    </div>
+  `).join("");
+
+  const faqs = (siteManagementData.faqs || []).map(item => `
+    <div class="admin-table-card" style="padding:16px;margin-bottom:12px;">
+      <label class="form-group">คำถาม
+        <input data-faq-question="${item.id}" value="${siteEscape(item.question)}" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
+      </label>
+      <label class="form-group">คำตอบ
+        <textarea data-faq-answer="${item.id}" rows="3" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">${siteEscape(item.answer)}</textarea>
+      </label>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+        <label>ลำดับ <input type="number" data-faq-order="${item.id}" value="${Number(item.sort_order) || 0}" style="width:75px;padding:7px;border:1px solid #e2e8f0;border-radius:8px;"></label>
+        <label><input type="checkbox" data-faq-active="${item.id}" ${item.is_active ? "checked" : ""}> แสดงบนหน้าร้าน</label>
+        <button class="btn-primary" type="button" onclick="window.saveSiteFaq('${item.id}')">บันทึก</button>
+        <button class="btn-secondary" type="button" onclick="window.deleteSiteFaq('${item.id}')">ลบ</button>
+      </div>
+    </div>
+  `).join("");
+
+  root.innerHTML = `
+    <div class="admin-table-card" style="padding:22px;margin-bottom:22px;">
+      <h2 class="section-title-sm"><i class="fa-solid fa-heading"></i> ข้อความบนหน้า Landing Page</h2>
+      <p style="color:#64748b;font-size:.9rem;margin:0 0 18px;">ช่องที่ยังไม่มีข้อมูลจะแสดงเป็นค่าว่างในระบบจัดการ การเชื่อมข้อความเหล่านี้เข้ากับหน้าร้านจะทำในขั้นตอนถัดไป</p>
+      ${contentForm}
+      <button class="btn-primary" type="button" onclick="window.saveLandingContent()"><i class="fa-solid fa-floppy-disk"></i> บันทึกข้อความทั้งหมด</button>
+    </div>
+
+    <div class="admin-table-card" style="padding:22px;margin-bottom:22px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div><h2 class="section-title-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> จุดเด่นของร้าน (Features)</h2><p style="color:#64748b;font-size:.9rem;">เพิ่ม แก้ไข เปิด/ปิด และกำหนดลำดับการแสดงผล</p></div>
+        <button class="btn-primary" type="button" onclick="window.addSiteFeature()"><i class="fa-solid fa-plus"></i> เพิ่ม Feature</button>
+      </div>
+      ${features || '<p style="color:#94a3b8;">ยังไม่มี Feature ในฐานข้อมูล</p>'}
+    </div>
+
+    <div class="admin-table-card" style="padding:22px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div><h2 class="section-title-sm"><i class="fa-solid fa-circle-question"></i> คำถามที่พบบ่อย (FAQ)</h2><p style="color:#64748b;font-size:.9rem;">จัดการคำถามและคำตอบที่แสดงบนหน้าร้าน</p></div>
+        <button class="btn-primary" type="button" onclick="window.addSiteFaq()"><i class="fa-solid fa-plus"></i> เพิ่ม FAQ</button>
+      </div>
+      ${faqs || '<p style="color:#94a3b8;">ยังไม่มี FAQ ในฐานข้อมูล</p>'}
+    </div>
+  `;
+}
+
+function renderReviewsManagement() {
+  const root = document.getElementById("reviewsManagementContent");
+  if (!root) return;
+
+  const filter = window.currentReviewFilter || "all";
+  const rows = (siteManagementData.reviews || []).filter(item => filter === "all" || item.status === filter);
+
+  const pending = siteManagementData.reviews.filter(r => r.status === "pending").length;
+  const approved = siteManagementData.reviews.filter(r => r.status === "approved").length;
+  const rejected = siteManagementData.reviews.filter(r => r.status === "rejected").length;
+
+  root.innerHTML = `
+    <div class="admin-stats-grid" style="margin-bottom:20px;">
+      <div class="stat-card"><div><div class="stat-value">${siteManagementData.reviews.length}</div><div class="stat-label">รีวิวทั้งหมด</div></div></div>
+      <div class="stat-card"><div><div class="stat-value">${pending}</div><div class="stat-label">รออนุมัติ</div></div></div>
+      <div class="stat-card"><div><div class="stat-value">${approved}</div><div class="stat-label">อนุมัติแล้ว</div></div></div>
+      <div class="stat-card"><div><div class="stat-value">${rejected}</div><div class="stat-label">ปฏิเสธ</div></div></div>
+    </div>
+    <div class="admin-toolbar-card">
+      <div class="admin-filter-pills" id="siteReviewFilters">
+        ${[["all","ทั้งหมด"],["pending","รออนุมัติ"],["approved","อนุมัติแล้ว"],["rejected","ปฏิเสธ"]].map(([key,label]) => `<button type="button" class="admin-pill ${filter === key ? "active" : ""}" data-review-filter="${key}">${label}</button>`).join("")}
+      </div>
+    </div>
+    <div class="admin-table-card"><div class="table-responsive">
+      <table class="admin-table">
+        <thead><tr><th>วันที่</th><th>ชื่อลูกค้า</th><th>คะแนน</th><th>รีวิว</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <tbody>
+          ${rows.length ? rows.map(item => `
+            <tr>
+              <td>${item.created_at ? new Date(item.created_at).toLocaleString("th-TH") : "-"}</td>
+              <td>${siteEscape(item.customer_name)}</td>
+              <td style="color:#f59e0b;white-space:nowrap;">${"★".repeat(Math.max(0,Math.min(5,Number(item.rating)||0)))}${"☆".repeat(5-Math.max(0,Math.min(5,Number(item.rating)||0)))}</td>
+              <td style="min-width:220px;white-space:pre-wrap;">${siteEscape(item.review_text)}</td>
+              <td>${item.status === "pending" ? "รออนุมัติ" : item.status === "approved" ? "อนุมัติแล้ว" : "ปฏิเสธ"}</td>
+              <td style="white-space:nowrap;">
+                ${item.status !== "approved" ? `<button class="btn-primary" type="button" onclick="window.moderateSiteReview('${item.id}','approved')">อนุมัติ</button>` : ""}
+                ${item.status !== "rejected" ? `<button class="btn-secondary" type="button" onclick="window.moderateSiteReview('${item.id}','rejected')">ปฏิเสธ</button>` : ""}
+                <button class="action-icon-btn delete-btn" type="button" onclick="window.deleteSiteReview('${item.id}')" title="ลบรีวิว"><i class="fa-solid fa-trash-can"></i></button>
+              </td>
+            </tr>
+          `).join("") : '<tr><td colspan="6" style="text-align:center;padding:35px;color:#94a3b8;">ไม่พบรีวิวในสถานะนี้</td></tr>'}
+        </tbody>
+      </table>
+    </div></div>
+  `;
+
+  const filters = document.getElementById("siteReviewFilters");
+  if (filters && !filters.dataset.bound) {
+    filters.dataset.bound = "true";
+    filters.addEventListener("click", event => {
+      const button = event.target.closest("[data-review-filter]");
+      if (!button) return;
+      window.currentReviewFilter = button.dataset.reviewFilter;
+      renderReviewsManagement();
+    });
+  }
+}
+
+window.currentReviewFilter = "all";
+
+window.saveLandingContent = async function () {
+  try {
+    const items = [...document.querySelectorAll("[data-content-key]")].map(input => ({
+      content_key: input.dataset.contentKey,
+      content_value: input.value
+    }));
+    await siteApiPost({ action: "save-content", items });
+    showAdminToast("บันทึกข้อความ Landing Page เรียบร้อยแล้ว", "success");
+    await window.loadSiteManagement();
+  } catch (error) {
+    console.error(error);
+    showAdminToast(error.message || "บันทึกไม่สำเร็จ", "error");
+  }
+};
+
+window.saveSiteFeature = async function (id) {
+  try {
+    const get = selector => document.querySelector(selector);
+    const item = {
+      id,
+      icon: get(`[data-feature-icon="${id}"]`)?.value.trim() || "fa-star",
+      title: get(`[data-feature-title="${id}"]`)?.value.trim() || "",
+      description: get(`[data-feature-description="${id}"]`)?.value.trim() || "",
+      sort_order: Number(get(`[data-feature-order="${id}"]`)?.value || 0),
+      is_active: !!get(`[data-feature-active="${id}"]`)?.checked
+    };
+    if (!item.title) return showAdminToast("กรุณากรอกหัวข้อ Feature", "error");
+    await siteApiPost({ action: "save-feature", item });
+    showAdminToast("บันทึก Feature เรียบร้อยแล้ว", "success");
+    await window.loadSiteManagement();
+  } catch (error) {
+    console.error(error);
+    showAdminToast(error.message || "บันทึก Feature ไม่สำเร็จ", "error");
+  }
+};
+
+window.addSiteFeature = async function () {
+  const title = prompt("กรอกหัวข้อ Feature ใหม่:");
+  if (!title || !title.trim()) return;
+  const description = prompt("กรอกคำอธิบาย Feature:");
+  try {
+    await siteApiPost({ action: "save-feature", item: {
+      icon: "fa-star", title: title.trim(), description: description || "", sort_order: siteManagementData.features.length + 1, is_active: true
+    }});
+    await window.loadSiteManagement();
+    showAdminToast("เพิ่ม Feature เรียบร้อยแล้ว", "success");
+  } catch (error) {
+    showAdminToast(error.message || "เพิ่ม Feature ไม่สำเร็จ", "error");
+  }
+};
+
+window.deleteSiteFeature = async function (id) {
+  if (!confirm("ต้องการลบ Feature นี้ใช่หรือไม่?")) return;
+  try {
+    await siteApiPost({ action: "delete-feature", id });
+    await window.loadSiteManagement();
+    showAdminToast("ลบ Feature เรียบร้อยแล้ว", "success");
+  } catch (error) {
+    showAdminToast(error.message || "ลบ Feature ไม่สำเร็จ", "error");
+  }
+};
+
+window.saveSiteFaq = async function (id) {
+  try {
+    const get = selector => document.querySelector(selector);
+    const item = {
+      id,
+      question: get(`[data-faq-question="${id}"]`)?.value.trim() || "",
+      answer: get(`[data-faq-answer="${id}"]`)?.value.trim() || "",
+      sort_order: Number(get(`[data-faq-order="${id}"]`)?.value || 0),
+      is_active: !!get(`[data-faq-active="${id}"]`)?.checked
+    };
+    if (!item.question || !item.answer) return showAdminToast("กรุณากรอกคำถามและคำตอบให้ครบ", "error");
+    await siteApiPost({ action: "save-faq", item });
+    await window.loadSiteManagement();
+    showAdminToast("บันทึก FAQ เรียบร้อยแล้ว", "success");
+  } catch (error) {
+    showAdminToast(error.message || "บันทึก FAQ ไม่สำเร็จ", "error");
+  }
+};
+
+window.addSiteFaq = async function () {
+  const question = prompt("กรอกคำถามใหม่:");
+  if (!question || !question.trim()) return;
+  const answer = prompt("กรอกคำตอบ:");
+  if (!answer || !answer.trim()) return;
+  try {
+    await siteApiPost({ action: "save-faq", item: {
+      question: question.trim(), answer: answer.trim(), sort_order: siteManagementData.faqs.length + 1, is_active: true
+    }});
+    await window.loadSiteManagement();
+    showAdminToast("เพิ่ม FAQ เรียบร้อยแล้ว", "success");
+  } catch (error) {
+    showAdminToast(error.message || "เพิ่ม FAQ ไม่สำเร็จ", "error");
+  }
+};
+
+window.deleteSiteFaq = async function (id) {
+  if (!confirm("ต้องการลบ FAQ นี้ใช่หรือไม่?")) return;
+  try {
+    await siteApiPost({ action: "delete-faq", id });
+    await window.loadSiteManagement();
+    showAdminToast("ลบ FAQ เรียบร้อยแล้ว", "success");
+  } catch (error) {
+    showAdminToast(error.message || "ลบ FAQ ไม่สำเร็จ", "error");
+  }
+};
+
+window.moderateSiteReview = async function (id, status) {
+  try {
+    await siteApiPost({ action: "moderate-review", id, status });
+    await window.loadSiteManagement();
+    showAdminToast(status === "approved" ? "อนุมัติรีวิวแล้ว" : "เปลี่ยนสถานะรีวิวเป็นปฏิเสธแล้ว", "success");
+  } catch (error) {
+    showAdminToast(error.message || "อัปเดตสถานะรีวิวไม่สำเร็จ", "error");
+  }
+};
+
+window.deleteSiteReview = async function (id) {
+  if (!confirm("ต้องการลบรีวิวนี้อย่างถาวรใช่หรือไม่?")) return;
+  try {
+    await siteApiPost({ action: "delete-review", id });
+    await window.loadSiteManagement();
+    showAdminToast("ลบรีวิวเรียบร้อยแล้ว", "success");
+  } catch (error) {
+    showAdminToast(error.message || "ลบรีวิวไม่สำเร็จ", "error");
+  }
 };
 
 // ==============================================================================
