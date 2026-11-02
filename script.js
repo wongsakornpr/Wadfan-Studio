@@ -69,6 +69,85 @@ const orderSuccessContent = document.getElementById("orderSuccessContent");
 const freebieSubmitBtn = document.getElementById("freebieSubmitBtn");
 const freebieEmail = document.getElementById("freebieEmail");
 
+
+// =============================================================================
+// Landing Page CMS: load public content from /api/site and render editable sections
+// =============================================================================
+function landingEscape(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]));
+}
+
+function landingSetText(id, value) {
+  const el = document.getElementById(id);
+  if (el && value !== undefined && value !== null && String(value) !== "") el.textContent = value;
+}
+
+function renderLandingFeatures(items) {
+  const grid = document.getElementById("featuresGrid");
+  if (!grid || !Array.isArray(items)) return;
+  const active = items.filter(item => item.is_active !== false).sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0));
+  if (!active.length) return;
+  const palettes = ["bg-pink-light text-pink", "bg-blue-light text-blue", "bg-purple-light text-purple", "bg-yellow-light text-yellow-dark"];
+  grid.innerHTML = active.map((item, i) => {
+    const icon = item.icon_class || item.icon || "fa-solid fa-star";
+    const [bg="bg-pink-light", color="text-pink"] = palettes[i % palettes.length].split(" ");
+    return `<div class="feature-card"><div class="feature-icon-box ${bg}"><i class="${landingEscape(icon)} ${color}"></i></div><h3>${landingEscape(item.title)}</h3><p>${landingEscape(item.description)}</p></div>`;
+  }).join("");
+}
+
+function renderLandingFaqs(items) {
+  const accordion = document.getElementById("faqAccordion");
+  if (!accordion || !Array.isArray(items)) return;
+  const active = items.filter(item => item.is_active !== false).sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0));
+  if (!active.length) return;
+  accordion.innerHTML = active.map((item, i) => `<div class="accordion-item ${i === 0 ? "active" : ""}"><button class="accordion-header" type="button"><span>${landingEscape(item.question)}</span><i class="fa-solid fa-chevron-down accordion-icon"></i></button><div class="accordion-body"><p>${landingEscape(item.answer).replace(/\n/g,"<br>")}</p></div></div>`).join("");
+  setupAccordion();
+}
+
+async function loadLandingPageContent() {
+  try {
+    const response = await fetch("/api/site?view=public", { method: "GET", cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (!data || data.success === false) throw new Error(data?.message || "Invalid CMS response");
+    const contentRows = Array.isArray(data.content) ? data.content : (data.data?.content || []);
+    const features = Array.isArray(data.features) ? data.features : (data.data?.features || []);
+    const faqs = Array.isArray(data.faqs) ? data.faqs : (data.data?.faqs || []);
+    const content = Object.fromEntries(contentRows.map(row => [row.content_key, row.content_value]));
+
+    const map = {
+      hero_tag_badge:"heroTagBadge", hero_tag_text:"heroTagText", hero_title_line1:"heroTitleLine1",
+      hero_title_line2:"heroTitleLine2", hero_title_line3:"heroTitleLine3", hero_description:"heroDescription",
+      hero_button_image:"heroButtonImage", hero_button_worksheet:"heroButtonWorksheet",
+      hero_stat1_value:"heroStat1Value", hero_stat1_label:"heroStat1Label",
+      hero_stat2_value:"heroStat2Value", hero_stat2_label:"heroStat2Label",
+      hero_stat3_value:"heroStat3Value", hero_stat3_label:"heroStat3Label",
+      category_subtitle:"categorySubtitle", category_title:"categoryTitle", category_description:"categoryDescription",
+      freebie_badge:"freebieBadge", freebie_title:"freebieTitle", freebie_description:"freebieDescription",
+      freebie_button:"freebieButtonText", freebie_note:"freebieNote",
+      features_subtitle:"featuresSubtitle", features_title:"featuresTitle", features_description:"featuresDescription",
+      faq_subtitle:"faqSubtitle", faq_title:"faqTitle", faq_description:"faqDescription",
+      footer_description:"footerDescription", footer_categories_title:"footerCategoriesTitle",
+      footer_help_title:"footerHelpTitle", footer_contact_title:"footerContactTitle",
+      footer_help_features:"footerHelpFeatures", footer_help_faq:"footerHelpFaq", footer_help_freebie:"footerHelpFreebie",
+      footer_line:"footerLine", footer_email:"footerEmail", footer_hours:"footerHours", footer_copyright:"footerCopyright"
+    };
+    Object.entries(map).forEach(([key,id]) => landingSetText(id, content[key]));
+    const hrefMap = { footer_facebook_url:"footerFacebookLink", footer_instagram_url:"footerInstagramLink", footer_line_url:"footerLineLink" };
+    Object.entries(hrefMap).forEach(([key,id]) => {
+      const link = document.getElementById(id);
+      if (link && content[key]) { link.href = content[key]; link.target = "_blank"; link.rel = "noopener noreferrer"; }
+    });
+    const emailInput = document.getElementById("freebieEmail");
+    if (emailInput && content.freebie_placeholder) emailInput.placeholder = content.freebie_placeholder;
+    renderLandingFeatures(features);
+    renderLandingFaqs(faqs);
+  } catch (error) {
+    // Keep the existing HTML fallback visible if CMS/API is temporarily unavailable.
+    console.warn("Landing Page CMS could not load; showing default content.", error);
+  }
+}
+
 // ==============================================================================
 // 1. Initialization
 // ==============================================================================
@@ -77,6 +156,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
   loadCartFromStorage();
   setupAccordion();
+  loadLandingPageContent();
 });
 
 async function loadStoreData() {
@@ -832,8 +912,17 @@ window.handleOrderSubmit = async function () {
     const result = await window.wadfanData.createOrder(orderData, items);
 
     if (result.success) {
-  // บันทึกคำสั่งซื้อสำเร็จแล้ว
-}
+      // ส่งอีเมลแจ้งเตือนคำสั่งซื้อใหม่ไปยังแอดมิน wongsakorn.pr1996@gmail.com
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: "wongsakorn.pr1996@gmail.com",
+          subject: `🎨 [Wadfan Studio] มีคำสั่งซื้อใหม่ #${result.order_number} (${name})`,
+          message: `เรียน คุณวรศากร,\n\nมีคำสั่งซื้อใหม่เข้ามาในร้าน Wadfan Studio เรียบร้อยแล้วครับ:\n\n• เลขที่คำสั่งซื้อ: ${result.order_number}\n• ชื่อลูกค้า: ${name}\n• อีเมลลูกค้า: ${email}\n• เบอร์โทร: ${phone || '-'}\n• ยอดชำระ: ฿${totalAmount}\n\nคุณสามารถเข้าจัดการออเดอร์ ดูรูปภาพ และยืนยันการจัดส่งได้ที่:\nhttps://wadfanstudio.vercel.app/admin`
+        })
+      }).catch(() => {});
+    }
 
     closeCheckoutModal();
 
@@ -873,10 +962,10 @@ window.handleOrderSubmit = async function () {
           <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left; font-size: 0.9rem; line-height: 1.6;">
             <p><strong><i class="fa-solid fa-envelope-circle-check text-pink"></i> การจัดส่งไฟล์และสินค้า:</strong></p>
             ${
-  hasWorksheets
-    ? `<p>📄 <strong>ใบงานออนไลน์:</strong> หลังจากแอดมินตรวจสอบและยืนยันการชำระเงินแล้ว แอดมินจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> ของคุณครับ</p>`
-    : ""
-}
+              hasWorksheets
+                ? `<p>📄 <strong>ใบงานออนไลน์:</strong> ทันทีที่แอดมินกดยืนยันยอดชำระเงิน ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> อัตโนมัติทันที</p>`
+                : ""
+            }
             ${
               hasImages
                 ? `<p>🎨 <strong>รูปภาพ/งานสั่งทำ:</strong> ทีมงานได้รับไฟล์รูปของคุณ (${uploadedFiles.length} รูป) เรียบร้อยแล้ว และจะแจ้งเลขพัสดุ (Tracking) ทางอีเมลเมื่อทำการจัดส่งครับ</p>`

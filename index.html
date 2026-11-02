@@ -113,46 +113,39 @@
       <!-- Left Hero Content -->
       <div class="hero-content">
         <a href="#products" class="hero-tag" id="heroTagLink" title="เลือกชมภาพวาดดิจิทัลและสื่อการเรียนรู้">
-          <span class="tag-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Minimal & Warm</span>
-          <span class="tag-text">ภาพวาดดิจิทัล & สื่อการเรียนรู้ <i class="fa-solid fa-arrow-right-long tag-arrow"></i></span>
+          <span class="tag-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> <span id="heroTagBadge">Minimal & Warm</span></span>
+          <span class="tag-text"><span id="heroTagText">ภาพวาดดิจิทัล & สื่อการเรียนรู้</span> <i class="fa-solid fa-arrow-right-long tag-arrow"></i></span>
         </a>
-        <h1 class="hero-title">
-          สร้างสรรค์จินตนาการ <br>
-          ด้วย <span class="highlight-pink">รูปภาพดิจิทัล</span> <br>
-          และ <span class="highlight-blue">ใบงานออนไลน์</span> คุณภาพสูง
-        </h1>
-        <p class="hero-desc">
-          แหล่งรวมงานอาร์ตเวิร์ก วอลเปเปอร์ สติกเกอร์ตกแต่ง และแบบฝึกหัดเด็กปฐมวัย-ประถมฯ 
-          กำหนดขนาดและสิทธิ์การใช้งานได้ครบวงจร สั่งซื้อแล้วดาวน์โหลดไฟล์คมชัดได้ทันที 24 ชม.
-        </p>
+        <h1 class="hero-title" id="heroTitle"><span id="heroTitleLine1">สร้างสรรค์จินตนาการ</span><br>ด้วย <span class="highlight-pink" id="heroTitleLine2">รูปภาพดิจิทัล</span><br>และ <span class="highlight-blue" id="heroTitleLine3">ใบงานออนไลน์</span> คุณภาพสูง</h1>
+        <p class="hero-desc" id="heroDescription">แหล่งรวมงานอาร์ตเวิร์ก วอลเปเปอร์ สติกเกอร์ตกแต่ง และแบบฝึกหัดเด็กปฐมวัย-ประถมฯ กำหนดขนาดและสิทธิ์การใช้งานได้ครบวงจร สั่งซื้อแล้วดาวน์โหลดไฟล์คมชัดได้ทันที 24 ชม.</p>
 
         <div class="hero-buttons">
           <button class="btn-primary btn-large" onclick="window.filterByMainType('image')">
             <i class="fa-solid fa-palette"></i>
-            <span>เลือกซื้อรูปภาพดิจิทัล</span>
+            <span id="heroButtonImage">เลือกซื้อรูปภาพดิจิทัล</span>
           </button>
           <button class="btn-secondary btn-large" onclick="window.filterByMainType('worksheet')">
             <i class="fa-solid fa-book-open"></i>
-            <span>เลือกซื้อใบงานการเรียนรู้</span>
+            <span id="heroButtonWorksheet">เลือกซื้อใบงานการเรียนรู้</span>
           </button>
         </div>
 
         <!-- Trust Stats -->
         <div class="hero-stats">
           <div class="stat-item">
-            <span class="stat-number">850+</span>
-            <span class="stat-text">ผลงานพร้อมใช้</span>
+            <span class="stat-number" id="heroStat1Value">850+</span>
+            <span class="stat-text" id="heroStat1Label">ผลงานพร้อมใช้</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat-item">
-            <span class="stat-number">15,000+</span>
-            <span class="stat-text">ดาวน์โหลดสำเร็จ</span>
+            <span class="stat-number" id="heroStat2Value">15,000+</span>
+            <span class="stat-text" id="heroStat2Label">ดาวน์โหลดสำเร็จ</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat-item">
-            <span class="stat-number">4.9/5</span>
+            <span class="stat-number" id="heroStat3Value">4.9/5</span>
             <span class="stat-text">
-              <i class="fa-solid fa-star text-yellow"></i> ความพึงพอใจ
+              <i class="fa-solid fa-star text-yellow"></i> <span id="heroStat3Label">ความพึงพอใจ</span>
             </span>
           </div>
         </div>
@@ -228,9 +221,9 @@
   <section class="section-padding bg-warm-white" id="categories">
     <div class="container">
       <div class="section-header text-center">
-        <span class="section-subtitle">หมวดหมู่ผลงานทั้งหมด</span>
-        <h2 class="section-title">เลือกชมผลงานตามหมวดหมู่</h2>
-        <p class="section-desc">ทั้งงานศิลปะภาพวาดน่ารัก วอลเปเปอร์ สติกเกอร์ และแบบฝึกหัดพัฒนาทักษะเด็ก</p>
+        <span class="section-subtitle" id="categorySubtitle">หมวดหมู่ผลงานทั้งหมด</span>
+        <h2 class="section-title" id="categoryTitle">เลือกชมผลงานตามหมวดหมู่</h2>
+        <p class="section-desc" id="categoryDescription">ทั้งงานศิลปะภาพวาดน่ารัก วอลเปเปอร์ สติกเกอร์ และแบบฝึกหัดพัฒนาทักษะเด็ก</p>
       </div>
 
       <div class="categories-grid" id="categoriesGrid">
@@ -287,20 +280,20 @@
     <div class="container">
       <div class="freebie-card">
         <div class="freebie-content">
-          <div class="freebie-badge">🎁 ใบงานแจกฟรีจาก Wadfan Studio</div>
-          <h2>รับชุดใบงานการเรียนรู้ทดลองใช้ฟรี 100%</h2>
-          <p>สัมผัสแบบฝึกหัดพัฒนาทักษะเด็กปฐมวัย-ประถมฯ ไฟล์ PDF คุณภาพคมชัด 300 DPI สามารถสั่งพิมพ์ไปฝึกทำที่บ้านได้ทันที</p>
+          <div class="freebie-badge" id="freebieBadge">🎁 ใบงานแจกฟรีจาก Wadfan Studio</div>
+          <h2 id="freebieTitle">รับชุดใบงานการเรียนรู้ทดลองใช้ฟรี 100%</h2>
+          <p id="freebieDescription">สัมผัสแบบฝึกหัดพัฒนาทักษะเด็กปฐมวัย-ประถมฯ ไฟล์ PDF คุณภาพคมชัด 300 DPI สามารถสั่งพิมพ์ไปฝึกทำที่บ้านได้ทันที</p>
           <div class="freebie-form">
             <div class="input-with-icon">
               <i class="fa-regular fa-envelope"></i>
               <input type="email" id="freebieEmail" placeholder="กรอกอีเมลของคุณเพื่อรับลิงก์ดาวน์โหลดชุดใบงานฟรี">
             </div>
             <button class="btn-primary" id="freebieSubmitBtn">
-              <span>ขอรับลิงก์ใบงานฟรี</span>
+              <span id="freebieButtonText">ขอรับลิงก์ใบงานฟรี</span>
               <i class="fa-solid fa-paper-plane"></i>
             </button>
           </div>
-          <span class="freebie-note">🔒 แอดมินจะจัดส่งลิงก์ดาวน์โหลด Google Drive ให้ทางอีเมลของคุณโดยตรง ปลอดภัย 100%</span>
+          <span class="freebie-note" id="freebieNote">🔒 แอดมินจะจัดส่งลิงก์ดาวน์โหลด Google Drive ให้ทางอีเมลของคุณโดยตรง ปลอดภัย 100%</span>
         </div>
         <div class="freebie-illustration">
           <div class="gift-box-art">
@@ -315,12 +308,12 @@
   <section class="section-padding bg-warm-white" id="features">
     <div class="container">
       <div class="section-header text-center">
-        <span class="section-subtitle">ทำไมต้องเลือกเรา</span>
-        <h2 class="section-title">มาตรฐานและคุณภาพที่คุณวางใจ</h2>
-        <p class="section-desc">เราใส่ใจทุกรายละเอียดตั้งแต่การวาดเส้น โทนสี ไปจนถึงการจัดสรรขนาดไฟล์ที่พร้อมใช้งาน</p>
+        <span class="section-subtitle" id="featuresSubtitle">ทำไมต้องเลือกเรา</span>
+        <h2 class="section-title" id="featuresTitle">มาตรฐานและคุณภาพที่คุณวางใจ</h2>
+        <p class="section-desc" id="featuresDescription">เราใส่ใจทุกรายละเอียดตั้งแต่การวาดเส้น โทนสี ไปจนถึงการจัดสรรขนาดไฟล์ที่พร้อมใช้งาน</p>
       </div>
 
-      <div class="features-grid">
+      <div class="features-grid" id="featuresGrid">
         <div class="feature-card">
           <div class="feature-icon-box bg-pink-light">
             <i class="fa-solid fa-palette text-pink"></i>
@@ -360,9 +353,9 @@
   <section class="section-padding" id="faq">
     <div class="container faq-container">
       <div class="section-header text-center">
-        <span class="section-subtitle">ข้อสงสัยที่พบบ่อย</span>
-        <h2 class="section-title">คำถามที่คุณอาจต้องการทราบ</h2>
-        <p class="section-desc">เรารวบรวมคำตอบเกี่ยวกับการซื้อรูปภาพและใบงานออนไลน์</p>
+        <span class="section-subtitle" id="faqSubtitle">ข้อสงสัยที่พบบ่อย</span>
+        <h2 class="section-title" id="faqTitle">คำถามที่คุณอาจต้องการทราบ</h2>
+        <p class="section-desc" id="faqDescription">เรารวบรวมคำตอบเกี่ยวกับการซื้อรูปภาพและใบงานออนไลน์</p>
       </div>
 
       <div class="accordion" id="faqAccordion">
@@ -412,18 +405,18 @@
             <span class="brand-th">วาดฝัน สตูดิโอ</span>
           </div>
         </div>
-        <p class="footer-desc">
+        <p class="footer-desc" id="footerDescription">
           สตูดิโอขายรูปภาพดิจิทัลและใบงานการเรียนรู้ออนไลน์ สไตล์ Minimal & Warm อบอุ่น สบายตา เพื่อการเรียนรู้และตกแต่งที่สร้างสรรค์
         </p>
         <div class="footer-socials">
-          <a href="#" class="social-icon" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
-          <a href="#" class="social-icon" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
-          <a href="#" class="social-icon" title="Line OA"><i class="fa-brands fa-line"></i></a>
+          <a href="#" id="footerFacebookLink" class="social-icon" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" id="footerInstagramLink" class="social-icon" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" id="footerLineLink" class="social-icon" title="Line OA"><i class="fa-brands fa-line"></i></a>
         </div>
       </div>
 
       <div class="footer-col">
-        <h4 class="footer-heading">หมวดหมู่สินค้า</h4>
+        <h4 class="footer-heading" id="footerCategoriesTitle">หมวดหมู่สินค้า</h4>
         <ul class="footer-links" id="footerCategoriesList">
           <li><a href="#products" onclick="window.filterByMainType('image')">🎨 รูปภาพและอาร์ตเวิร์ก</a></li>
           <li><a href="#products" onclick="window.filterByMainType('worksheet')">📄 ใบงานและแบบฝึกหัดเด็ก</a></li>
@@ -431,27 +424,27 @@
       </div>
 
       <div class="footer-col">
-        <h4 class="footer-heading">ช่วยเหลือ & แนะนำ</h4>
+        <h4 class="footer-heading" id="footerHelpTitle">ช่วยเหลือ & แนะนำ</h4>
         <ul class="footer-links">
-          <li><a href="#features">ทำไมต้องเลือกเรา</a></li>
-          <li><a href="#faq">คำถามที่พบบ่อย</a></li>
-          <li><a href="#freebies">รับไฟล์ทดลองฟรี</a></li>
+          <li><a href="#features" id="footerHelpFeatures">ทำไมต้องเลือกเรา</a></li>
+          <li><a href="#faq" id="footerHelpFaq">คำถามที่พบบ่อย</a></li>
+          <li><a href="#freebies" id="footerHelpFreebie">รับไฟล์ทดลองฟรี</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h4 class="footer-heading">ติดต่อเรา</h4>
+        <h4 class="footer-heading" id="footerContactTitle">ติดต่อเรา</h4>
         <div class="contact-info">
-          <p><i class="fa-brands fa-line text-green"></i> LINE: @wadfanstudio</p>
-          <p><i class="fa-solid fa-envelope text-pink"></i> contact@wadfanstudio.com</p>
-          <p><i class="fa-solid fa-clock text-blue"></i> ทุกวัน 08:00 - 22:00 น.</p>
+          <p><i class="fa-brands fa-line text-green"></i> LINE: <span id="footerLine">@wadfanstudio</span></p>
+          <p><i class="fa-solid fa-envelope text-pink"></i> <span id="footerEmail">contact@wadfanstudio.com</span></p>
+          <p><i class="fa-solid fa-clock text-blue"></i> <span id="footerHours">ทุกวัน 08:00 - 22:00 น.</span></p>
         </div>
       </div>
     </div>
 
     <div class="footer-bottom">
       <div class="container footer-bottom-inner">
-        <p>&copy; 2026 Wadfan Studio (วาดฝัน สตูดิโอ). สงวนลิขสิทธิ์ทุกประการ</p>
+        <p><span id="footerCopyright">&copy; 2026 Wadfan Studio (วาดฝัน สตูดิโอ). สงวนลิขสิทธิ์ทุกประการ</span></p>
         <div class="footer-legal">
           <!-- Discreet Admin Portal Link with lock icon (Requires Login) -->
           <a href="admin.html" class="discreet-admin-link" title="Staff & Admin Only"><i class="fa-solid fa-lock"></i> Staff Login</a>

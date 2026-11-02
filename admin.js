@@ -1956,16 +1956,55 @@ let siteManagementData = {
 };
 
 const landingContentFields = [
-  ["hero_title", "หัวข้อหลักหน้าแรก (Hero Title)"],
-  ["hero_description", "คำอธิบายหน้าแรก (Hero Description)"],
-  ["freebie_title", "หัวข้อแบนเนอร์ของขวัญฟรี"],
-  ["freebie_description", "คำอธิบายแบนเนอร์ของขวัญฟรี"],
-  ["features_subtitle", "ข้อความเล็กเหนือหัวข้อ Features"],
-  ["features_title", "หัวข้อส่วนจุดเด่นของร้าน"],
-  ["features_description", "คำอธิบายส่วนจุดเด่นของร้าน"],
-  ["faq_subtitle", "ข้อความเล็กเหนือหัวข้อ FAQ"],
-  ["faq_title", "หัวข้อส่วนคำถามที่พบบ่อย"],
-  ["faq_description", "คำอธิบายส่วนคำถามที่พบบ่อย"]
+  // Hero
+  ["hero_tag_badge", "Hero: ป้ายข้อความเล็ก"],
+  ["hero_tag_text", "Hero: ข้อความข้างป้าย"],
+  ["hero_title_line1", "Hero: หัวข้อบรรทัดที่ 1"],
+  ["hero_title_line2", "Hero: ข้อความสีชมพู"],
+  ["hero_title_line3", "Hero: ข้อความสีฟ้า"],
+  ["hero_description", "Hero: คำอธิบาย"],
+  ["hero_button_image", "Hero: ปุ่มเลือกซื้อรูปภาพ"],
+  ["hero_button_worksheet", "Hero: ปุ่มเลือกซื้อใบงาน"],
+  ["hero_stat1_value", "Hero: สถิติที่ 1 (ตัวเลข)"],
+  ["hero_stat1_label", "Hero: สถิติที่ 1 (คำอธิบาย)"],
+  ["hero_stat2_value", "Hero: สถิติที่ 2 (ตัวเลข)"],
+  ["hero_stat2_label", "Hero: สถิติที่ 2 (คำอธิบาย)"],
+  ["hero_stat3_value", "Hero: สถิติที่ 3 (ตัวเลข)"],
+  ["hero_stat3_label", "Hero: สถิติที่ 3 (คำอธิบาย)"],
+  // Categories
+  ["category_subtitle", "หมวดหมู่: ป้ายข้อความ"],
+  ["category_title", "หมวดหมู่: หัวข้อ"],
+  ["category_description", "หมวดหมู่: คำอธิบาย"],
+  // Freebie
+  ["freebie_badge", "ของขวัญฟรี: ป้ายข้อความ"],
+  ["freebie_title", "ของขวัญฟรี: หัวข้อ"],
+  ["freebie_description", "ของขวัญฟรี: คำอธิบาย"],
+  ["freebie_placeholder", "ของขวัญฟรี: ข้อความตัวอย่างในช่องอีเมล"],
+  ["freebie_button", "ของขวัญฟรี: ข้อความบนปุ่ม"],
+  ["freebie_note", "ของขวัญฟรี: ข้อความหมายเหตุ"],
+  // Features
+  ["features_subtitle", "จุดเด่น: ป้ายข้อความ"],
+  ["features_title", "จุดเด่น: หัวข้อ"],
+  ["features_description", "จุดเด่น: คำอธิบาย"],
+  // FAQ
+  ["faq_subtitle", "FAQ: ป้ายข้อความ"],
+  ["faq_title", "FAQ: หัวข้อ"],
+  ["faq_description", "FAQ: คำอธิบาย"],
+  // Footer
+  ["footer_description", "Footer: คำอธิบายร้าน"],
+  ["footer_categories_title", "Footer: หัวข้อหมวดหมู่สินค้า"],
+  ["footer_help_title", "Footer: หัวข้อช่วยเหลือ"],
+  ["footer_help_features", "Footer: ลิงก์ทำไมต้องเลือกเรา"],
+  ["footer_help_faq", "Footer: ลิงก์คำถามที่พบบ่อย"],
+  ["footer_help_freebie", "Footer: ลิงก์รับไฟล์ทดลองฟรี"],
+  ["footer_contact_title", "Footer: หัวข้อติดต่อ"],
+  ["footer_line", "Footer: LINE"],
+  ["footer_email", "Footer: Email"],
+  ["footer_hours", "Footer: เวลาทำการ"],
+  ["footer_copyright", "Footer: ข้อความลิขสิทธิ์"],
+  ["footer_facebook_url", "Footer: ลิงก์ Facebook"],
+  ["footer_instagram_url", "Footer: ลิงก์ Instagram"],
+  ["footer_line_url", "Footer: ลิงก์ LINE"]
 ];
 
 function siteEscape(value) {
@@ -2038,7 +2077,7 @@ function renderLandingManagement() {
   const contentForm = landingContentFields.map(([key, label]) => `
     <div class="form-group" style="margin-bottom:16px;">
       <label class="form-label" for="site-content-${key}">${siteEscape(label)}</label>
-      <textarea id="site-content-${key}" data-content-key="${key}" rows="${key.includes("description") ? 3 : 2}"
+      <textarea id="site-content-${key}" data-content-key="${key}" rows="${key.includes("description") || key.includes("note") ? 3 : 2}"
         style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font:inherit;resize:vertical;"
         placeholder="กรอก${siteEscape(label)}">${siteEscape(contentMap[key] || "")}</textarea>
     </div>
@@ -2048,7 +2087,7 @@ function renderLandingManagement() {
     <div class="admin-table-card" style="padding:16px;margin-bottom:12px;">
       <div style="display:grid;grid-template-columns: minmax(100px, 1fr) minmax(180px, 2fr);gap:12px;">
         <label class="form-group">ไอคอน (Font Awesome)
-          <input data-feature-icon="${item.id}" value="${siteEscape(item.icon)}" placeholder="fa-palette" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
+          <input data-feature-icon="${item.id}" value="${siteEscape(item.icon_class || item.icon)}" placeholder="fa-palette" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
         </label>
         <label class="form-group">หัวข้อ
           <input data-feature-title="${item.id}" value="${siteEscape(item.title)}" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">
@@ -2086,7 +2125,7 @@ function renderLandingManagement() {
   root.innerHTML = `
     <div class="admin-table-card" style="padding:22px;margin-bottom:22px;">
       <h2 class="section-title-sm"><i class="fa-solid fa-heading"></i> ข้อความบนหน้า Landing Page</h2>
-      <p style="color:#64748b;font-size:.9rem;margin:0 0 18px;">ช่องที่ยังไม่มีข้อมูลจะแสดงเป็นค่าว่างในระบบจัดการ การเชื่อมข้อความเหล่านี้เข้ากับหน้าร้านจะทำในขั้นตอนถัดไป</p>
+      <p style="color:#64748b;font-size:.9rem;margin:0 0 18px;">แก้ไขข้อความได้ทุกส่วนตามหัวข้อด้านล่าง เมื่อบันทึกแล้วหน้าเว็บไซต์จะดึงข้อมูลชุดใหม่จาก Supabase มาแสดง</p>
       ${contentForm}
       <button class="btn-primary" type="button" onclick="window.saveLandingContent()"><i class="fa-solid fa-floppy-disk"></i> บันทึกข้อความทั้งหมด</button>
     </div>
@@ -2189,7 +2228,7 @@ window.saveSiteFeature = async function (id) {
     const get = selector => document.querySelector(selector);
     const item = {
       id,
-      icon: get(`[data-feature-icon="${id}"]`)?.value.trim() || "fa-star",
+      icon: get(`[data-feature-icon="${id}"]`)?.value.trim() || "fa-solid fa-star",
       title: get(`[data-feature-title="${id}"]`)?.value.trim() || "",
       description: get(`[data-feature-description="${id}"]`)?.value.trim() || "",
       sort_order: Number(get(`[data-feature-order="${id}"]`)?.value || 0),
@@ -2211,7 +2250,7 @@ window.addSiteFeature = async function () {
   const description = prompt("กรอกคำอธิบาย Feature:");
   try {
     await siteApiPost({ action: "save-feature", item: {
-      icon: "fa-star", title: title.trim(), description: description || "", sort_order: siteManagementData.features.length + 1, is_active: true
+      icon: "fa-solid fa-star", title: title.trim(), description: description || "", sort_order: siteManagementData.features.length + 1, is_active: true
     }});
     await window.loadSiteManagement();
     showAdminToast("เพิ่ม Feature เรียบร้อยแล้ว", "success");
