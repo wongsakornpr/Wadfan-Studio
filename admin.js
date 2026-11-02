@@ -1307,20 +1307,6 @@ window.lastGeneratedEmailBodyText = "";
 window.previewSentEmail = function (emailData) {
   if (!emailPreviewModalContent || !emailPreviewModal) return;
 
-  // ลองส่งอัตโนมัติผ่าน Vercel Serverless API (หากผู้ใช้ตั้งค่า Resend ใน Vercel ไว้)
-  fetch("/api/send-email", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(emailData)
-  })
-    .then((r) => r.json())
-    .then((res) => {
-      if (res.success) {
-        showAdminToast("ระบบได้ส่งอีเมลอัตโนมัติหาลูกค้าสำเร็จแล้ว!", "success");
-      }
-    })
-    .catch(() => {});
-
   let trackingUrl = "";
   if (emailData.carrier && emailData.tracking_number) {
     const c = emailData.carrier.toLowerCase();
