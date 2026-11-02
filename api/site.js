@@ -101,9 +101,13 @@ async function getPublicData(res) {
 // action: submit-review
 // --------------------------------------------------
 async function submitReview(req, res) {
-  const name = String(req.body?.customer_name || "").trim();
-  const review = String(req.body?.review_text || "").trim();
-  const rating = Number(req.body?.rating);
+  // Accept both payload shapes:
+  // 1) { action, item: { customer_name, review_text, rating } }
+  // 2) { action, customer_name, review_text, rating }
+  const payload = req.body?.item || req.body || {};
+  const name = String(payload.customer_name || "").trim();
+  const review = String(payload.review_text || "").trim();
+  const rating = Number(payload.rating);
 
   if (!name || name.length > 80) {
     return res.status(400).json({
