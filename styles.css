@@ -3422,3 +3422,23 @@ button:disabled, .btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
     justify-content: center;
   }
 }
+
+
+/* Tighten the transition between Customer Reviews and FAQ */
+#reviews.reviews-section {
+  padding-bottom: 38px;
+}
+
+#faq.section-padding {
+  padding-top: 38px;
+}
+
+@media (max-width: 768px) {
+  #reviews.reviews-section {
+    padding-bottom: 28px;
+  }
+
+  #faq.section-padding {
+    padding-top: 30px;
+  }
+}
