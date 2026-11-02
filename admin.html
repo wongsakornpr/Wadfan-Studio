@@ -108,6 +108,13 @@
         <i class="fa-solid fa-gift"></i> จัดการคำขอของขวัญฟรี (Freebies)
         <span class="order-badge-pill" id="pendingFreebiesCountBadge" style="display: none;">0</span>
       </button>
+      <button class="admin-tab-btn" data-tab="landing" onclick="window.switchAdminTab('landing')">
+        <i class="fa-solid fa-pen-to-square"></i> จัดการ Landing Page
+      </button>
+      <button class="admin-tab-btn" data-tab="reviews" onclick="window.switchAdminTab('reviews')">
+        <i class="fa-solid fa-star"></i> จัดการรีวิว
+        <span class="order-badge-pill" id="pendingReviewsCountBadge" style="display: none;">0</span>
+      </button>
     </nav>
 
     <!-- Main Admin Container -->
@@ -408,6 +415,42 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           TAB 5: LANDING PAGE MANAGEMENT
+           ============================================================================== -->
+      <section class="admin-tab-content" id="tabContentLanding" style="display: none;">
+        <div class="admin-top-bar">
+          <div>
+            <h1 class="page-title">จัดการ Landing Page</h1>
+            <p class="page-desc">แก้ไขข้อความหน้าแรก จุดเด่นของร้าน และคำถามที่พบบ่อย โดยไม่ต้องแก้ไขโค้ด</p>
+          </div>
+          <button class="btn-secondary" type="button" onclick="window.loadSiteManagement()">
+            <i class="fa-solid fa-rotate"></i> โหลดข้อมูลใหม่
+          </button>
+        </div>
+        <div id="landingManagementContent">
+          <div class="admin-table-card" style="padding:24px;">กำลังโหลดข้อมูล...</div>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           TAB 6: CUSTOMER REVIEWS MANAGEMENT
+           ============================================================================== -->
+      <section class="admin-tab-content" id="tabContentReviews" style="display: none;">
+        <div class="admin-top-bar">
+          <div>
+            <h1 class="page-title">จัดการรีวิวลูกค้า</h1>
+            <p class="page-desc">ตรวจสอบรีวิวก่อนเผยแพร่บนหน้าร้าน และจัดการสถานะการแสดงผล</p>
+          </div>
+          <button class="btn-secondary" type="button" onclick="window.loadSiteManagement()">
+            <i class="fa-solid fa-rotate"></i> โหลดข้อมูลใหม่
+          </button>
+        </div>
+        <div id="reviewsManagementContent">
+          <div class="admin-table-card" style="padding:24px;">กำลังโหลดข้อมูล...</div>
         </div>
       </section>
 
