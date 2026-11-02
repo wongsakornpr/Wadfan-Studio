@@ -129,48 +129,113 @@ let allFreebies = [];
 let currentFreebieFilter = "all";
 let currentFreebieSearch = "";
 
-// ==============================================================================
+// =============================================================================
 // 1. Initialization & Authentication Gate
-// ==============================================================================
+// =============================================================================
+
+let adminDashboardInitialized = false;
+
 document.addEventListener("DOMContentLoaded", async () => {
-  checkAdminAuth();
+  await checkAdminAuth();
+});
+
+async function checkAdminAuth() {
+  try {
+    const response = await fetch("/api/admin-session", {
+      method: "GET",
+      credentials: "same-origin"
+    });
+
+    const result = await response.json();
+
+    if (result.authenticated) {
+      await initializeAdminDashboard();
+    } else {
+      showAdminLogin();
+    }
+  } catch (error) {
+    console.error("Admin session check failed:", error);
+    showAdminLogin();
+  }
+}
+
+function showAdminLogin() {
+  if (adminAuthOverlay) adminAuthOverlay.style.display = "flex";
+  if (adminMainWrapper) adminMainWrapper.style.display = "none";
+}
+
+async function initializeAdminDashboard() {
+  if (adminDashboardInitialized) return;
+
+  adminDashboardInitialized = true;
+
+  if (adminAuthOverlay) adminAuthOverlay.style.display = "none";
+  if (adminMainWrapper) adminMainWrapper.style.display = "block";
+
   updateConnectionStatusUI();
+
   await loadCategories();
   await refreshProductsTable();
   await refreshOrdersTable();
   await refreshFreebiesTable();
+
   setupEventListeners();
   loadSqlSchemaPreview();
-});
-
-function checkAdminAuth() {
-  const isAuth = sessionStorage.getItem("wadfan_admin_auth");
-  if (isAuth === "true") {
-    if (adminAuthOverlay) adminAuthOverlay.style.display = "none";
-    if (adminMainWrapper) adminMainWrapper.style.display = "block";
-  } else {
-    if (adminAuthOverlay) adminAuthOverlay.style.display = "flex";
-    if (adminMainWrapper) adminMainWrapper.style.display = "none";
-  }
 }
 
-window.handleAdminLogin = function () {
+window.handleAdminLogin = async function () {
   const passcode = adminPasscode ? adminPasscode.value.trim() : "";
-  if (passcode === "050763") {
-    sessionStorage.setItem("wadfan_admin_auth", "true");
-    adminAuthOverlay.style.display = "none";
-    adminMainWrapper.style.display = "block";
+
+  if (!passcode) {
+    showAdminToast("กรุณากรอกรหัสผ่าน", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/admin-login", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password: passcode })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      showAdminToast(result.message || "รหัสผ่านไม่ถูกต้อง", "error");
+      return;
+    }
+
+    if (adminPasscode) adminPasscode.value = "";
+
     showAdminToast("เข้าสู่ระบบผู้ดูแลเรียบร้อยแล้ว", "success");
-  } else {
-    showAdminToast("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง", "error");
+
+    await initializeAdminDashboard();
+
+  } catch (error) {
+    console.error("Admin login error:", error);
+    showAdminToast("ไม่สามารถเชื่อมต่อระบบตรวจสอบรหัสผ่านได้", "error");
   }
 };
 
-window.handleAdminLogout = function () {
-  sessionStorage.removeItem("wadfan_admin_auth");
-  adminAuthOverlay.style.display = "flex";
-  adminMainWrapper.style.display = "none";
+window.handleAdminLogout = async function () {
+  try {
+    await fetch("/api/admin-logout", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+  } catch (error) {
+    console.error("Admin logout error:", error);
+  }
+
+  adminDashboardInitialized = false;
+
   if (adminPasscode) adminPasscode.value = "";
+
+  showAdminLogin();
+
   showAdminToast("ออกจากระบบเรียบร้อยแล้ว", "info");
 };
 
