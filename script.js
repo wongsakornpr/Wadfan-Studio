@@ -1,5 +1,5 @@
 /**
- * Wadfan Studio (วาดฝัน สตูดิโอ) - Storefront Script v2
+ * Wadfan Studio (วาดฝัน สตูดิโอ) - Storefront Script
  * Sells Digital Art / Images & Educational Worksheets
  * Integrated with Supabase Data Provider (window.wadfanData)
  */
@@ -12,19 +12,13 @@ let currentCategoryFilter = "all";
 let currentSearch = "";
 let selectedVariantForModal = null;
 let currentPreviewProduct = null;
-let customerAttachedFiles = [];
-let customerSlipFile = null;
-let isSubmittingOrder = false;
-let isManualNavClick = false;
-let manualNavTimer = null;
-const MAX_TOTAL_UPLOAD_SIZE = 100 * 1024 * 1024; // 100 MB max
+let approvedCustomerReviews = [];
 
 // Cart State (stored in localStorage)
 let shoppingCart = [];
 
 // DOM Elements
 const productsGrid = document.getElementById("productsGrid");
-const categoriesGrid = document.getElementById("categoriesGrid");
 const filterTabs = document.getElementById("filterTabs");
 const searchInput = document.getElementById("productSearchInput");
 const cartBtn = document.getElementById("cartBtn");
@@ -54,99 +48,10 @@ const drawerLinks = document.querySelectorAll(".drawer-link");
 const checkoutModal = document.getElementById("checkoutModal");
 const checkoutCloseBtn = document.getElementById("checkoutCloseBtn");
 const checkoutDueAmount = document.getElementById("checkoutDueAmount");
-const checkoutImageUploadBox = document.getElementById("checkoutImageUploadBox");
-const customerImageFileInput = document.getElementById("customerImageFile");
-const fileUploadPreview = document.getElementById("fileUploadPreview");
-const dropzoneText = document.getElementById("dropzoneText");
-const checkoutSlipUploadBox = document.getElementById("checkoutSlipUploadBox");
-const customerSlipFileInput = document.getElementById("customerSlipFile");
-const slipUploadPreview = document.getElementById("slipUploadPreview");
-const slipDropzoneText = document.getElementById("slipDropzoneText");
-const orderSuccessModal = document.getElementById("orderSuccessModal");
-const orderSuccessContent = document.getElementById("orderSuccessContent");
 
 // Freebie Form
 const freebieSubmitBtn = document.getElementById("freebieSubmitBtn");
 const freebieEmail = document.getElementById("freebieEmail");
-
-
-// =============================================================================
-// Landing Page CMS: load public content from /api/site and render editable sections
-// =============================================================================
-function landingEscape(value) {
-  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]));
-}
-
-function landingSetText(id, value) {
-  const el = document.getElementById(id);
-  if (el && value !== undefined && value !== null && String(value) !== "") el.textContent = value;
-}
-
-function renderLandingFeatures(items) {
-  const grid = document.getElementById("featuresGrid");
-  if (!grid || !Array.isArray(items)) return;
-  const active = items.filter(item => item.is_active !== false).sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0));
-  if (!active.length) return;
-  const palettes = ["bg-pink-light text-pink", "bg-blue-light text-blue", "bg-purple-light text-purple", "bg-yellow-light text-yellow-dark"];
-  grid.innerHTML = active.map((item, i) => {
-    const icon = item.icon_class || item.icon || "fa-solid fa-star";
-    const [bg="bg-pink-light", color="text-pink"] = palettes[i % palettes.length].split(" ");
-    return `<div class="feature-card"><div class="feature-icon-box ${bg}"><i class="${landingEscape(icon)} ${color}"></i></div><h3>${landingEscape(item.title)}</h3><p>${landingEscape(item.description)}</p></div>`;
-  }).join("");
-}
-
-function renderLandingFaqs(items) {
-  const accordion = document.getElementById("faqAccordion");
-  if (!accordion || !Array.isArray(items)) return;
-  const active = items.filter(item => item.is_active !== false).sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0));
-  if (!active.length) return;
-  accordion.innerHTML = active.map((item, i) => `<div class="accordion-item ${i === 0 ? "active" : ""}"><button class="accordion-header" type="button"><span>${landingEscape(item.question)}</span><i class="fa-solid fa-chevron-down accordion-icon"></i></button><div class="accordion-body"><p>${landingEscape(item.answer).replace(/\n/g,"<br>")}</p></div></div>`).join("");
-  setupAccordion();
-}
-
-async function loadLandingPageContent() {
-  try {
-    const response = await fetch("/api/site?view=public", { method: "GET", cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    if (!data || data.success === false) throw new Error(data?.message || "Invalid CMS response");
-    const contentRows = Array.isArray(data.content) ? data.content : (data.data?.content || []);
-    const features = Array.isArray(data.features) ? data.features : (data.data?.features || []);
-    const faqs = Array.isArray(data.faqs) ? data.faqs : (data.data?.faqs || []);
-    const content = Object.fromEntries(contentRows.map(row => [row.content_key, row.content_value]));
-
-    const map = {
-      hero_tag_badge:"heroTagBadge", hero_tag_text:"heroTagText", hero_title_line1:"heroTitleLine1",
-      hero_title_line2:"heroTitleLine2", hero_title_line3:"heroTitleLine3", hero_description:"heroDescription",
-      hero_button_image:"heroButtonImage", hero_button_worksheet:"heroButtonWorksheet",
-      hero_stat1_value:"heroStat1Value", hero_stat1_label:"heroStat1Label",
-      hero_stat2_value:"heroStat2Value", hero_stat2_label:"heroStat2Label",
-      hero_stat3_value:"heroStat3Value", hero_stat3_label:"heroStat3Label",
-      category_subtitle:"categorySubtitle", category_title:"categoryTitle", category_description:"categoryDescription",
-      freebie_badge:"freebieBadge", freebie_title:"freebieTitle", freebie_description:"freebieDescription",
-      freebie_button:"freebieButtonText", freebie_note:"freebieNote",
-      features_subtitle:"featuresSubtitle", features_title:"featuresTitle", features_description:"featuresDescription",
-      faq_subtitle:"faqSubtitle", faq_title:"faqTitle", faq_description:"faqDescription",
-      footer_description:"footerDescription", footer_categories_title:"footerCategoriesTitle",
-      footer_help_title:"footerHelpTitle", footer_contact_title:"footerContactTitle",
-      footer_help_features:"footerHelpFeatures", footer_help_faq:"footerHelpFaq", footer_help_freebie:"footerHelpFreebie",
-      footer_line:"footerLine", footer_email:"footerEmail", footer_hours:"footerHours", footer_copyright:"footerCopyright"
-    };
-    Object.entries(map).forEach(([key,id]) => landingSetText(id, content[key]));
-    const hrefMap = { footer_facebook_url:"footerFacebookLink", footer_instagram_url:"footerInstagramLink", footer_line_url:"footerLineLink" };
-    Object.entries(hrefMap).forEach(([key,id]) => {
-      const link = document.getElementById(id);
-      if (link && content[key]) { link.href = content[key]; link.target = "_blank"; link.rel = "noopener noreferrer"; }
-    });
-    const emailInput = document.getElementById("freebieEmail");
-    if (emailInput && content.freebie_placeholder) emailInput.placeholder = content.freebie_placeholder;
-    renderLandingFeatures(features);
-    renderLandingFaqs(faqs);
-  } catch (error) {
-    // Keep the existing HTML fallback visible if CMS/API is temporarily unavailable.
-    console.warn("Landing Page CMS could not load; showing default content.", error);
-  }
-}
 
 // ==============================================================================
 // 1. Initialization
@@ -156,90 +61,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
   loadCartFromStorage();
   setupAccordion();
-  loadLandingPageContent();
+  await loadCustomerReviews();
+  setupCustomerReviewForm();
 });
 
 async function loadStoreData() {
-  try {
-    categoriesList = await window.wadfanData.getCategories();
-  } catch (e) {
-    console.warn("Could not load categories:", e);
-    categoriesList = [];
-  }
-
-  try {
-    productsList = await window.wadfanData.getProducts({ status: "active" });
-  } catch (e) {
-    console.warn("Could not load products:", e);
-    productsList = [];
-  }
-
-  renderCategoriesGrid();
+  categoriesList = await window.wadfanData.getCategories();
+  productsList = await window.wadfanData.getProducts({ status: "active" });
+  updateRealProductCount();
   renderSubFilterTabs();
   renderProducts();
 }
 
 // ==============================================================================
-// 2. Categories & Filter Tabs
+// 2. Filter & Category Tabs
 // ==============================================================================
-function renderCategoriesGrid() {
-  if (!categoriesGrid) return;
-
-  if (categoriesList.length === 0) {
-    categoriesGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #94a3b8;">
-        <i class="fa-solid fa-shapes" style="font-size: 2rem; margin-bottom: 8px;"></i>
-        <p>ยังไม่มีหมวดหมู่สินค้า</p>
-      </div>
-    `;
-    return;
-  }
-
-  // Cute icons and colors cycle
-  const iconPalette = [
-    { icon: "🎨", bg: "bg-pink-light" },
-    { icon: "📱", bg: "bg-blue-light" },
-    { icon: "✨", bg: "bg-yellow-light" },
-    { icon: "🖼️", bg: "bg-purple-light" },
-    { icon: "ก", bg: "bg-pink-light" },
-    { icon: "123", bg: "bg-blue-light" },
-    { icon: "ABC", bg: "bg-purple-light" },
-    { icon: "✂️", bg: "bg-yellow-light" }
-  ];
-
-  categoriesGrid.innerHTML = categoriesList
-    .map((c, idx) => {
-      const palette = iconPalette[idx % iconPalette.length];
-      const typeLabel = c.product_type === "image" ? "รูปภาพดิจิทัล" : "ใบงานการเรียนรู้";
-
-      const coverUrl = c.cover_image_url || c.image_url;
-      const visualElement = coverUrl
-        ? `
-        <div class="cat-cover-wrapper">
-          <img src="${coverUrl}" alt="${c.name}" class="cat-cover-img" loading="lazy" onerror="this.closest('.cat-cover-wrapper').style.display='none'; const fb = this.closest('.category-card').querySelector('.cat-icon-fallback'); if (fb) fb.style.display='flex';" />
-        </div>
-        <div class="cat-icon-wrapper cat-icon-fallback ${palette.bg}" style="display: none;">
-          <span class="cat-emoji">${palette.icon}</span>
-        </div>
-        `
-        : `
-        <div class="cat-icon-wrapper ${palette.bg}">
-          <span class="cat-emoji">${palette.icon}</span>
-        </div>
-        `;
-
-      return `
-      <div class="category-card" onclick="window.filterByCategorySlug('${c.slug}')">
-        ${visualElement}
-        <h3>${c.name}</h3>
-        <p>คลิกเพื่อเลือกชมผลงานในหมวดหมู่นี้</p>
-        <span class="cat-count">${typeLabel}</span>
-      </div>
-    `;
-    })
-    .join("");
-}
-
 function renderSubFilterTabs() {
   if (!filterTabs) return;
 
@@ -263,28 +99,17 @@ function renderSubFilterTabs() {
   `;
 }
 
+// Global Filter by Main Type (All / Image / Worksheet)
 window.filterByMainType = function (mainType) {
   currentMainType = mainType;
   currentCategoryFilter = "all";
 
-  // ล็อค Scrollspy ชั่วคราวไม่ให้เขียนทับ Highlight ขณะเลื่อนจอ
-  isManualNavClick = true;
-  if (manualNavTimer) clearTimeout(manualNavTimer);
-  manualNavTimer = setTimeout(() => {
-    isManualNavClick = false;
-  }, 1200);
-
+  // Update Main Type Tabs Visuals
   document.querySelectorAll(".main-type-tab").forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.maintype === mainType);
-  });
-
-  // อัปเดตสถานะ Active บน Navbar และ Drawer Menu
-  document.querySelectorAll(".nav-link, .drawer-link").forEach((link) => {
-    const onclickAttr = link.getAttribute("onclick") || "";
-    if (onclickAttr.includes(`filterByMainType('${mainType}')`)) {
-      link.classList.add("active");
-    } else if (onclickAttr.includes("filterByMainType") || link.getAttribute("href") === "#hero") {
-      link.classList.remove("active");
+    if (tab.dataset.maintype === mainType) {
+      tab.classList.add("active");
+    } else {
+      tab.classList.remove("active");
     }
   });
 
@@ -292,7 +117,9 @@ window.filterByMainType = function (mainType) {
   renderProducts();
 
   const prodSection = document.getElementById("products");
-  if (prodSection) prodSection.scrollIntoView({ behavior: "smooth" });
+  if (prodSection) {
+    prodSection.scrollIntoView({ behavior: "smooth" });
+  }
 };
 
 window.filterByCategorySlug = function (slug) {
@@ -301,33 +128,18 @@ window.filterByCategorySlug = function (slug) {
     currentMainType = cat.product_type;
     currentCategoryFilter = slug;
 
-    // ล็อค Scrollspy ชั่วคราว
-    isManualNavClick = true;
-    if (manualNavTimer) clearTimeout(manualNavTimer);
-    manualNavTimer = setTimeout(() => {
-      isManualNavClick = false;
-    }, 1200);
-
+    // Update Main Tabs
     document.querySelectorAll(".main-type-tab").forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.maintype === currentMainType);
-    });
-
-    // กำหนด Active ไปที่หมวดหมู่สินค้า
-    document.querySelectorAll(".nav-link, .drawer-link").forEach((link) => {
-      const href = link.getAttribute("href") || "";
-      const onclickAttr = link.getAttribute("onclick") || "";
-      if (href === "#categories" && !onclickAttr) {
-        link.classList.add("active");
-      } else {
-        link.classList.remove("active");
-      }
     });
 
     renderSubFilterTabs();
     renderProducts();
 
     const prodSection = document.getElementById("products");
-    if (prodSection) prodSection.scrollIntoView({ behavior: "smooth" });
+    if (prodSection) {
+      prodSection.scrollIntoView({ behavior: "smooth" });
+    }
   }
 };
 
@@ -338,8 +150,12 @@ function renderProducts() {
   if (!productsGrid) return;
 
   const filtered = productsList.filter((item) => {
-    if (currentMainType !== "all" && item.product_type !== currentMainType) return false;
+    // 1. Main Type
+    if (currentMainType !== "all" && item.product_type !== currentMainType) {
+      return false;
+    }
 
+    // 2. Sub Category / Free
     if (currentCategoryFilter === "free") {
       const hasFree = item.base_price === 0 || (item.variants && item.variants.some((v) => v.price === 0));
       if (!hasFree) return false;
@@ -348,6 +164,7 @@ function renderProducts() {
       if (cat && item.category_id !== cat.id) return false;
     }
 
+    // 3. Search Query
     if (currentSearch.trim() !== "") {
       const q = currentSearch.toLowerCase().trim();
       const matchTitle = item.title.toLowerCase().includes(q);
@@ -364,7 +181,7 @@ function renderProducts() {
       <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background: #fff; border-radius: 20px; border: 1px dashed #CBD5E1;">
         <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; color: #94A3B8; margin-bottom: 12px; display: block;"></i>
         <h3 style="font-size: 1.2rem; color: #334155; margin-bottom: 6px;">ไม่พบสินค้าที่ตรงกับการค้นหา</h3>
-        <p style="font-size: 0.9rem; color: #64748B;">ลองเลือกหมวดหมู่อื่น หรือกดดูสินค้าทั้งหมด</p>
+        <p style="font-size: 0.9rem; color: #64748B;">ลองเลือกหมวดหมู่ใหม่ หรือกดดูสินค้าทั้งหมด</p>
         <button class="btn-secondary" style="margin-top: 16px;" onclick="window.filterByMainType('all')">ดูสินค้าทั้งหมด</button>
       </div>
     `;
@@ -379,18 +196,17 @@ function renderProducts() {
       const typePillClass = isImage ? "pill-image" : "pill-worksheet";
       const typePillLabel = isImage ? "🎨 รูปภาพดิจิทัล" : "📄 ใบงานการเรียนรู้";
 
+      // Meta detail
       let metaInfoHtml = "";
       if (isImage) {
         const res = item.metadata ? item.metadata.resolution || "High-Res" : "High-Res";
         const variantsCount = item.variants ? item.variants.length : 1;
-        metaInfoHtml = `<span><i class="fa-solid fa-expand"></i> ${res}</span> <span>${variantsCount} ตัวเลือก</span>`;
+        metaInfoHtml = `<span><i class="fa-solid fa-expand"></i> ${res}</span> <span>${variantsCount} ขนาด</span>`;
       } else {
         const grade = item.metadata ? item.metadata.grade_level || "ปฐมวัย" : "ปฐมวัย";
         const pages = item.metadata ? item.metadata.total_pages || 20 : 20;
         metaInfoHtml = `<span><i class="fa-solid fa-graduation-cap"></i> ${grade}</span> <span>${pages} หน้า (PDF)</span>`;
       }
-
-      const coverImg = (window.wadfanData ? window.wadfanData.formatGoogleDriveImageUrl(item.cover_image_url) : item.cover_image_url) || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';
 
       return `
       <article class="product-card" data-id="${item.id}">
@@ -398,10 +214,10 @@ function renderProducts() {
           <span class="product-tag tag-best">${item.tag || "แนะนำ"}</span>
           <span class="product-type-pill ${typePillClass}">${typePillLabel}</span>
 
-          <img src="${coverImg}" class="product-cover-img" alt="${item.title}" onerror="if(this.src.includes('lh3.googleusercontent.com/d/')){const fid=this.src.split('/d/')[1];this.src='https://drive.google.com/thumbnail?id='+fid+'&sz=w1000';}else{this.src='https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';}">
+          <img src="${item.cover_image_url || 'https://via.placeholder.com/400'}" class="product-cover-img" alt="${item.title}" onerror="this.src='https://via.placeholder.com/400?text=Wadfan+Studio'">
 
           <button class="quick-preview-btn" onclick="window.openProductPreview('${item.id}')">
-            <i class="fa-regular fa-eye"></i> ดูตัวเลือก & ขนาด
+            <i class="fa-regular fa-eye"></i> ดูรายละเอียด & เลือกขนาด
           </button>
         </div>
 
@@ -423,7 +239,7 @@ function renderProducts() {
             </div>
 
             <button class="btn-primary btn-sm" onclick="window.openProductPreview('${item.id}')">
-              <span>เลือกขนาด & สั่งซื้อ</span> <i class="fa-solid fa-arrow-right"></i>
+              <span>เลือกขนาด & ซื้อ</span> <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
@@ -433,8 +249,165 @@ function renderProducts() {
     .join("");
 }
 
+
 // ==============================================================================
-// 4. Quick Preview & Variant Selector Modal
+// 3.5. Customer Reviews (public Vercel API; only approved reviews are displayed)
+// ==============================================================================
+function escapeReviewHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[char]));
+}
+
+function updateRealProductCount() {
+  const el = document.getElementById("realProductCount");
+  if (el) el.textContent = Number(productsList.length || 0).toLocaleString("th-TH");
+}
+
+function renderCustomerReviews() {
+  const grid = document.getElementById("customerReviewsGrid");
+  const countEl = document.getElementById("realReviewCount");
+  const averageEl = document.getElementById("realAverageRating");
+  if (!grid) return;
+
+  const reviews = approvedCustomerReviews.filter(item => item.status === "approved");
+  const average = reviews.length
+    ? reviews.reduce((sum, item) => sum + (Number(item.rating) || 0), 0) / reviews.length
+    : 0;
+
+  if (countEl) countEl.textContent = reviews.length.toLocaleString("th-TH");
+  if (averageEl) averageEl.textContent = reviews.length ? `${average.toFixed(1)}/5` : "—";
+
+  if (!reviews.length) {
+    grid.innerHTML = `
+      <div class="reviews-empty-state">
+        <i class="fa-regular fa-comments"></i>
+        <strong>ยังไม่มีรีวิวที่เผยแพร่</strong>
+        <span>คุณสามารถเป็นคนแรกที่แบ่งปันประสบการณ์กับเราได้</span>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = reviews.slice(0, 6).map(item => {
+    const rating = Math.max(1, Math.min(5, Number(item.rating) || 0));
+    const date = item.created_at
+      ? new Date(item.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
+      : "";
+    return `
+      <article class="review-card">
+        <div class="review-stars" aria-label="คะแนน ${rating} จาก 5">
+          ${"★".repeat(rating)}${"☆".repeat(5 - rating)}
+        </div>
+        <p class="review-comment">${escapeReviewHtml(item.review_text)}</p>
+        <div class="reviewer-meta">
+          <div class="reviewer-avatar"><i class="fa-solid fa-user"></i></div>
+          <div class="reviewer-info">
+            <strong>${escapeReviewHtml(item.customer_name)}</strong>
+            <small>${escapeReviewHtml(date)}</small>
+          </div>
+        </div>
+      </article>`;
+  }).join("");
+}
+
+async function loadCustomerReviews() {
+  const grid = document.getElementById("customerReviewsGrid");
+  try {
+    const response = await fetch("/api/site?view=public", {
+      method: "GET",
+      credentials: "same-origin",
+      headers: { "Accept": "application/json" }
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "โหลดรีวิวไม่สำเร็จ");
+    }
+    approvedCustomerReviews = Array.isArray(result.reviews) ? result.reviews : [];
+    renderCustomerReviews();
+  } catch (error) {
+    console.error("Load customer reviews error:", error);
+    if (grid) {
+      grid.innerHTML = `
+        <div class="reviews-empty-state">
+          <i class="fa-solid fa-circle-info"></i>
+          <strong>ขณะนี้ยังไม่สามารถโหลดรีวิวได้</strong>
+          <span>กรุณาลองใหม่อีกครั้งภายหลัง</span>
+        </div>`;
+    }
+    const countEl = document.getElementById("realReviewCount");
+    const averageEl = document.getElementById("realAverageRating");
+    if (countEl) countEl.textContent = "—";
+    if (averageEl) averageEl.textContent = "—";
+  }
+}
+
+function setupCustomerReviewForm() {
+  const form = document.getElementById("customerReviewForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = document.getElementById("submitCustomerReviewBtn");
+    const message = document.getElementById("reviewFormMessage");
+    const name = document.getElementById("reviewCustomerName")?.value.trim() || "";
+    const rating = Number(document.getElementById("reviewRating")?.value || 0);
+    const reviewText = document.getElementById("reviewText")?.value.trim() || "";
+
+    if (!name || !reviewText || rating < 1 || rating > 5) {
+      if (message) {
+        message.textContent = "กรุณากรอกชื่อ คะแนน และความคิดเห็นให้ครบถ้วน";
+        message.className = "review-form-message is-error";
+      }
+      return;
+    }
+
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งรีวิว...';
+    }
+    if (message) {
+      message.textContent = "";
+      message.className = "review-form-message";
+    }
+
+    try {
+      const response = await fetch("/api/site", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          action: "submit-review",
+          item: { customer_name: name, rating, review_text: reviewText }
+        })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "ส่งรีวิวไม่สำเร็จ");
+      }
+
+      form.reset();
+      if (message) {
+        message.textContent = "ส่งรีวิวเรียบร้อยแล้ว ขอบคุณมากครับ รีวิวจะแสดงหลังจากทีมงานตรวจสอบและอนุมัติ";
+        message.className = "review-form-message is-success";
+      }
+    } catch (error) {
+      console.error("Submit customer review error:", error);
+      if (message) {
+        message.textContent = error.message || "ไม่สามารถส่งรีวิวได้ กรุณาลองใหม่อีกครั้ง";
+        message.className = "review-form-message is-error";
+      }
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-regular fa-paper-plane"></i> ส่งรีวิว';
+      }
+    }
+  });
+}
+
+
+// ==============================================================================
+// 4. Quick Preview & Size Variant Selector Modal
 // ==============================================================================
 window.openProductPreview = function (productId) {
   const product = productsList.find((p) => p.id === productId);
@@ -442,17 +415,17 @@ window.openProductPreview = function (productId) {
 
   currentPreviewProduct = product;
   const isImage = product.product_type === "image";
-  const variants = product.variants && product.variants.length > 0 ? product.variants : [
+  const variants = product.variants || [
     {
       id: "def-1",
       name: "ขนาดมาตรฐาน",
-      dimension_or_detail: "พร้อมใช้งานทันที",
+      dimension_or_detail: "พร้อมใช้งาน",
       file_format: isImage ? "PNG/JPG" : "PDF",
-      price: product.base_price,
-      download_file_url: product.download_url || ""
+      price: product.base_price
     }
   ];
 
+  // Default select first variant
   selectedVariantForModal = variants[0];
 
   const variantsListHtml = variants
@@ -469,8 +442,6 @@ window.openProductPreview = function (productId) {
     )
     .join("");
 
-  const previewCoverImg = (window.wadfanData ? window.wadfanData.formatGoogleDriveImageUrl(product.cover_image_url) : product.cover_image_url) || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';
-
   previewModalContent.innerHTML = `
     <div class="preview-modal-body">
       <div class="preview-badge-row">
@@ -478,17 +449,19 @@ window.openProductPreview = function (productId) {
           <i class="${isImage ? 'fa-solid fa-palette text-blue' : 'fa-solid fa-file-pdf text-pink'}"></i> 
           ${isImage ? 'Digital Artwork & Image' : 'Educational Worksheet'}
         </span>
-        <span class="meta-grade"><i class="fa-solid fa-cloud text-blue"></i> Google Drive Cloud Delivery</span>
+        <span class="meta-grade"><i class="fa-solid fa-shield-halved text-green"></i> ลิขสิทธิ์แท้ Wadfan Studio</span>
       </div>
 
       <h2 class="preview-title">${product.title}</h2>
       <p class="preview-desc-full">${product.full_desc || product.short_desc || ""}</p>
 
       <div class="preview-grid-details">
+        <!-- Left: Image Preview -->
         <div style="border-radius: 14px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); height: 260px; background: #FAF9F8;">
-          <img src="${previewCoverImg}" style="width: 100%; height: 100%; object-fit: cover;" alt="${product.title}" onerror="if(this.src.includes('lh3.googleusercontent.com/d/')){const fid=this.src.split('/d/')[1];this.src='https://drive.google.com/thumbnail?id='+fid+'&sz=w1000';}else{this.src='https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80';}">
+          <img src="${product.cover_image_url}" style="width: 100%; height: 100%; object-fit: cover;" alt="${product.title}">
         </div>
 
+        <!-- Right: Variant & Size Selector -->
         <div class="preview-details-info">
           <div class="variant-selector-box">
             <div class="variant-selector-title">
@@ -521,10 +494,12 @@ window.selectModalVariant = function (variantId) {
 
   selectedVariantForModal = v;
 
+  // Update UI Card Selected State
   document.querySelectorAll(".variant-option-card").forEach((card) => {
     card.classList.toggle("active", card.dataset.variantId === variantId);
   });
 
+  // Update Button Text
   const btnText = document.getElementById("modalBtnText");
   if (btnText) {
     btnText.textContent = v.price === 0 ? "ดาวน์โหลดฟรีทันที" : `ใส่ตะกร้า ฿${v.price}`;
@@ -534,15 +509,20 @@ window.selectModalVariant = function (variantId) {
 window.addSelectedVariantToCart = function () {
   if (!currentPreviewProduct || !selectedVariantForModal) return;
 
+  // If free, trigger instant download
+  if (selectedVariantForModal.price === 0) {
+    showToast(`🎉 เริ่มดาวน์โหลด "${currentPreviewProduct.title}" ฟรีแล้ว!`, "success");
+    window.closePreviewModal();
+    return;
+  }
+
   const cartItem = {
     cartItemId: `${currentPreviewProduct.id}-${selectedVariantForModal.id}`,
     productId: currentPreviewProduct.id,
     variantId: selectedVariantForModal.id,
     title: currentPreviewProduct.title,
     variantName: selectedVariantForModal.name,
-    productType: currentPreviewProduct.product_type,
     coverUrl: currentPreviewProduct.cover_image_url,
-    downloadUrl: selectedVariantForModal.download_file_url || currentPreviewProduct.download_url || "",
     fileFormat: selectedVariantForModal.file_format || "Digital File",
     price: selectedVariantForModal.price
   };
@@ -653,417 +633,68 @@ function loadCartFromStorage() {
 }
 
 // ==============================================================================
-// 6. Checkout Flow (Orders & Google Drive File Upload)
+// 6. Checkout & Freebies
 // ==============================================================================
 function openCheckoutModal() {
   if (shoppingCart.length === 0) return;
   closeCartDrawer();
-
-  // If cart contains image products, show upload section
-  const hasImage = shoppingCart.some((i) => i.productType === "image");
-  if (checkoutImageUploadBox) {
-    checkoutImageUploadBox.style.display = hasImage ? "block" : "none";
-  }
-
-  // Toggle Slip upload box based on total amount
-  const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
-  const isFree = totalAmount === 0;
-  if (checkoutSlipUploadBox) {
-    checkoutSlipUploadBox.style.display = isFree ? "none" : "block";
-  }
-
-  // Reset file inputs
-  customerAttachedFiles = [];
-  renderCustomerFilesPreview();
-
-  customerSlipFile = null;
-  if (customerSlipFileInput) customerSlipFileInput.value = "";
-  if (slipUploadPreview) slipUploadPreview.style.display = "none";
-  if (slipDropzoneText) slipDropzoneText.textContent = "คลิกเพื่อแนบสลิปการโอนเงิน (JPG, PNG)";
-
-  if (checkoutModal) {
-    const dialog = checkoutModal.querySelector(".modal-dialog");
-    if (dialog) dialog.scrollTop = 0;
-    checkoutModal.classList.add("open");
-  }
+  if (checkoutModal) checkoutModal.classList.add("open");
 }
 
 function closeCheckoutModal() {
   if (checkoutModal) checkoutModal.classList.remove("open");
 }
 
-// Multi-file Attachment Handler for Customer Photos (Up to 100 MB)
-function renderCustomerFilesPreview() {
-  if (!fileUploadPreview || !dropzoneText) return;
+window.handleOrderSubmit = function () {
+  const name = document.getElementById("orderName").value;
+  const email = document.getElementById("orderEmail").value;
 
-  if (customerAttachedFiles.length === 0) {
-    fileUploadPreview.style.display = "none";
-    fileUploadPreview.innerHTML = "";
-    dropzoneText.textContent = "คลิกเพื่อเลือกรูปภาพจากเครื่อง (เลือกได้หลายรูป รวมไม่เกิน 100 MB)";
-    return;
-  }
+  closeCheckoutModal();
 
-  const totalBytes = customerAttachedFiles.reduce((acc, f) => acc + f.size, 0);
-  const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+  shoppingCart = [];
+  saveCartToStorage();
+  updateCartUI();
 
-  dropzoneText.textContent = `เลือกแล้ว ${customerAttachedFiles.length} รูป (รวม ${totalMB} MB) - คลิกเพื่อเพิ่มรูปอีก`;
-  fileUploadPreview.style.display = "block";
-
-  fileUploadPreview.innerHTML = `
-    <div style="background: #FFF0F3; border: 1.5px solid #FBCFE8; border-radius: 12px; padding: 12px; margin-top: 10px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; color: #9D174D; font-weight: 600;">
-        <span><i class="fa-solid fa-images"></i> รูปภาพที่ลูกค้าแนบ (${customerAttachedFiles.length} รูป)</span>
-        <span style="font-size: 0.8rem; color: #64748B; font-weight: normal;">รวม ${totalMB} MB / สูงสุด 100 MB</span>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
-        ${customerAttachedFiles
-          .map(
-            (file, idx) => `
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #FFF; border-radius: 8px; border: 1px solid #FBCFE8; font-size: 0.84rem;">
-            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 82%;">
-              <i class="fa-solid fa-file-image text-pink"></i>
-              <span style="font-weight: 500; color: #334155; overflow: hidden; text-overflow: ellipsis;">${file.name}</span>
-              <span style="color: #94A3B8; font-size: 0.76rem;">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-            </div>
-            <button type="button" onclick="window.removeAttachedFile(${idx})" style="color: #EF4444; border: none; background: transparent; font-size: 1.2rem; cursor: pointer; padding: 0 4px;" title="ลบรูปนี้">&times;</button>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
-    </div>
-  `;
-}
-
-if (customerImageFileInput) {
-  customerImageFileInput.addEventListener("change", (e) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    if (selectedFiles.length === 0) return;
-
-    let currentTotal = customerAttachedFiles.reduce((acc, f) => acc + f.size, 0);
-
-    for (const file of selectedFiles) {
-      if (currentTotal + file.size > MAX_TOTAL_UPLOAD_SIZE) {
-        showToast(`ขนาดไฟล์รวมเกิน 100 MB! ไฟล์ "${file.name}" ไม่ถูกเพิ่ม`, "error");
-        continue;
-      }
-
-      // ป้องกันการเลือกไฟล์ซ้ำชื่อและขนาดเดิม
-      if (!customerAttachedFiles.some((f) => f.name === file.name && f.size === file.size)) {
-        customerAttachedFiles.push(file);
-        currentTotal += file.size;
-      }
-    }
-
-    // Reset input เพื่อให้กดเลือกเพิ่มได้อีก
-    customerImageFileInput.value = "";
-    renderCustomerFilesPreview();
-  });
-}
-
-window.removeAttachedFile = function (index) {
-  if (index >= 0 && index < customerAttachedFiles.length) {
-    customerAttachedFiles.splice(index, 1);
-    renderCustomerFilesPreview();
-  }
+  showToast(`🎉 ขอบพระคุณคุณ ${name}! ระบบจัดส่งลิงก์ดาวน์โหลดไฟล์ภาพและใบงานไปที่ ${email} เรียบร้อยแล้ว`, "success");
 };
 
-window.clearAttachedFile = function () {
-  customerAttachedFiles = [];
-  if (customerImageFileInput) customerImageFileInput.value = "";
-  renderCustomerFilesPreview();
-};
-
-// Payment Slip Attachment Handler
-if (customerSlipFileInput) {
-  customerSlipFileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      customerSlipFile = file;
-      if (slipDropzoneText) slipDropzoneText.textContent = `สลิปที่เลือก: ${file.name}`;
-      if (slipUploadPreview) {
-        slipUploadPreview.style.display = "block";
-        slipUploadPreview.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #DCFCE7; border: 1px solid #86EFAC; border-radius: 8px; margin-top: 8px; font-size: 0.85rem;">
-            <span><i class="fa-solid fa-file-invoice-dollar text-green"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-            <button type="button" style="color: #EF4444; font-size: 1.2rem; cursor: pointer; border: none; background: transparent;" onclick="window.clearSlipFile()">&times;</button>
-          </div>
-        `;
-      }
-    }
-  });
-}
-
-window.clearSlipFile = function () {
-  customerSlipFile = null;
-  if (customerSlipFileInput) customerSlipFileInput.value = "";
-  if (slipUploadPreview) slipUploadPreview.style.display = "none";
-  if (slipDropzoneText) slipDropzoneText.textContent = "คลิกเพื่อแนบสลิปการโอนเงิน (JPG, PNG)";
-};
-
-window.handleOrderSubmit = async function () {
-  if (isSubmittingOrder) return;
-
-  const submitBtn = document.getElementById("confirmOrderSubmitBtn");
-  const loadingOverlay = document.getElementById("checkoutLoadingOverlay");
-  const loadingSub = document.getElementById("checkoutLoadingSub");
-  const originalBtnContent = submitBtn ? submitBtn.innerHTML : "";
-
-  const name = document.getElementById("orderName").value.trim();
-  const email = document.getElementById("orderEmail").value.trim();
-  const phone = document.getElementById("orderPhone").value.trim();
-
-  if (!name || !email) {
-    showToast("กรุณากรอกชื่อและอีเมลให้ครบถ้วน", "error");
-    return;
-  }
-
-  const totalAmount = shoppingCart.reduce((sum, item) => sum + item.price, 0);
-  const isFree = totalAmount === 0;
-
-  // เริ่มต้นป้องกัน Double Submit และแสดง Loading Spinner ทันที
-  isSubmittingOrder = true;
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = `
-      <i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 8px;"></i>
-      <span>กำลังประมวลผลคำสั่งซื้อ... กรุณารอสักครู่</span>
-    `;
-  }
-  const checkoutDialog = document.querySelector("#checkoutModal .checkout-dialog");
-  if (checkoutDialog) {
-    checkoutDialog.classList.add("is-loading");
-    checkoutDialog.scrollTop = 0;
-  }
-  if (loadingOverlay) {
-    loadingOverlay.classList.add("active");
-    loadingOverlay.style.display = "flex";
-  }
-
-  try {
-    // 1. อ่านข้อมูลสลิปโอนเงิน (ถ้ามี)
-    let slipData = null;
-    if (customerSlipFile) {
-      if (loadingSub) loadingSub.textContent = "กำลังประมวลผลสลิปโอนเงิน...";
-      const slipDataUrl = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(customerSlipFile);
-      });
-
-      slipData = {
-        name: customerSlipFile.name,
-        size: customerSlipFile.size,
-        type: customerSlipFile.type,
-        dataUrl: slipDataUrl,
-        file_raw: customerSlipFile
-      };
-    }
-
-    // 2. ประมวลผลรูปภาพทั้งหมดที่ลูกค้าแนบมา (รองรับหลายรูป สูงสุด 100 MB)
-    const uploadedFiles = [];
-    if (customerAttachedFiles.length > 0) {
-      for (let i = 0; i < customerAttachedFiles.length; i++) {
-        const file = customerAttachedFiles[i];
-        if (loadingSub) {
-          loadingSub.textContent = `กำลังประมวลผลรูปภาพ (${i + 1}/${customerAttachedFiles.length}): ${file.name}...`;
-        }
-
-        const dataUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = () => resolve(null);
-          reader.readAsDataURL(file);
-        });
-
-        uploadedFiles.push({
-          name: file.name,
-          size: file.size,
-          type: file.type || "image/png",
-          dataUrl: dataUrl,
-          file_raw: file
-        });
-      }
-    }
-
-    if (loadingSub) {
-      loadingSub.textContent = "กำลังบันทึกคำสั่งซื้อและส่งไฟล์ขึ้น Google Drive ของร้าน...";
-    }
-
-    // 3. จัดเตรียมรายการสินค้า
-    const items = shoppingCart.map((i) => ({
-      product_title: i.title,
-      variant_name: i.variantName,
-      product_type: i.productType || "worksheet",
-      download_url: i.downloadUrl || "",
-      price: i.price
-    }));
-
-    const orderData = {
-      customer_name: name,
-      customer_email: email,
-      customer_phone: phone,
-      total_amount: totalAmount,
-      payment_slip_file: slipData,
-      uploaded_files: uploadedFiles
-    };
-
-    const result = await window.wadfanData.createOrder(orderData, items);
-
-    if (result.success) {
-      // ส่งอีเมลแจ้งเตือนคำสั่งซื้อใหม่ไปยังแอดมิน wongsakorn.pr1996@gmail.com
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: "wongsakorn.pr1996@gmail.com",
-          subject: `🎨 [Wadfan Studio] มีคำสั่งซื้อใหม่ #${result.order_number} (${name})`,
-          message: `เรียน คุณวรศากร,\n\nมีคำสั่งซื้อใหม่เข้ามาในร้าน Wadfan Studio เรียบร้อยแล้วครับ:\n\n• เลขที่คำสั่งซื้อ: ${result.order_number}\n• ชื่อลูกค้า: ${name}\n• อีเมลลูกค้า: ${email}\n• เบอร์โทร: ${phone || '-'}\n• ยอดชำระ: ฿${totalAmount}\n\nคุณสามารถเข้าจัดการออเดอร์ ดูรูปภาพ และยืนยันการจัดส่งได้ที่:\nhttps://wadfanstudio.vercel.app/admin`
-        })
-      }).catch(() => {});
-    }
-
-    closeCheckoutModal();
-
-    // Reset Cart
-    shoppingCart = [];
-    saveCartToStorage();
-    updateCartUI();
-
-    // Reset File State
-    customerAttachedFiles = [];
-    customerSlipFile = null;
-    renderCustomerFilesPreview();
-    if (customerSlipFileInput) customerSlipFileInput.value = "";
-    if (slipUploadPreview) slipUploadPreview.style.display = "none";
-
-    // แสดงหน้าต่างขอบคุณสั่งซื้อสำเร็จ
-    if (orderSuccessContent && orderSuccessModal) {
-      const hasWorksheets = items.some((i) => i.product_type === "worksheet");
-      const hasImages = items.some((i) => i.product_type === "image");
-
-      let instructionHtml = "";
-
-      if (isFree) {
-        const freeWorksheet = items.find((i) => i.download_url);
-        const downloadLink = freeWorksheet ? freeWorksheet.download_url : "https://drive.google.com/drive/folders/wadfan-freebies";
-        instructionHtml = `
-          <div style="background: #D1FAE5; color: #065F46; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left;">
-            <strong><i class="fa-solid fa-gift"></i> ดาวน์โหลดฟรีได้ทันที:</strong>
-            <p style="font-size: 0.9rem; margin-top: 4px;">เราได้เตรียมไฟล์ใน Google Drive ให้คุณแล้ว สามารถคลิกดาวน์โหลดได้ทันทีครับ</p>
-            <a href="${downloadLink}" target="_blank" class="btn-primary" style="margin-top: 10px; display: inline-flex;">
-              <i class="fa-solid fa-cloud-arrow-down"></i> เปิด Google Drive ดาวน์โหลดไฟล์
-            </a>
-          </div>
-        `;
-      } else {
-        instructionHtml = `
-          <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left; font-size: 0.9rem; line-height: 1.6;">
-            <p><strong><i class="fa-solid fa-envelope-circle-check text-pink"></i> การจัดส่งไฟล์และสินค้า:</strong></p>
-            ${
-              hasWorksheets
-                ? `<p>📄 <strong>ใบงานออนไลน์:</strong> ทันทีที่แอดมินกดยืนยันยอดชำระเงิน ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> อัตโนมัติทันที</p>`
-                : ""
-            }
-            ${
-              hasImages
-                ? `<p>🎨 <strong>รูปภาพ/งานสั่งทำ:</strong> ทีมงานได้รับไฟล์รูปของคุณ (${uploadedFiles.length} รูป) เรียบร้อยแล้ว และจะแจ้งเลขพัสดุ (Tracking) ทางอีเมลเมื่อทำการจัดส่งครับ</p>`
-                : ""
-            }
-          </div>
-        `;
-      }
-
-      orderSuccessContent.innerHTML = `
-        <div style="font-size: 3.5rem; color: #10B981; margin-bottom: 10px;">
-          <i class="fa-solid fa-circle-check"></i>
-        </div>
-        <h2 style="font-size: 1.45rem; color: #334155; margin-bottom: 6px;">สั่งซื้อสำเร็จเรียบร้อย!</h2>
-        <p style="color: #64748B; font-size: 0.92rem; margin-bottom: 12px;">หมายเลขคำสั่งซื้อของคุณ: <strong style="color: #FF758F;">${result.order_number}</strong></p>
-        ${instructionHtml}
-        <button class="btn-primary full-width" onclick="document.getElementById('orderSuccessModal').classList.remove('open');">
-          <i class="fa-solid fa-check"></i> เสร็จสิ้น
-        </button>
-      `;
-
-      orderSuccessModal.classList.add("open");
-    }
-
-    showToast("บันทึกคำสั่งซื้อของคุณเรียบร้อยแล้ว!", "success");
-  } catch (err) {
-    console.error("Order submit error:", err);
-    showToast(`เกิดข้อผิดพลาด: ${err.message}`, "error");
-  } finally {
-    // ปลดล็อก Double Submit และซ่อน Loading Overlay
-    isSubmittingOrder = false;
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnContent;
-    }
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove("active");
-      loadingOverlay.style.display = "none";
-    }
-    if (checkoutDialog) {
-      checkoutDialog.classList.remove("is-loading");
-    }
-  }
-};
-
-async function handleFreebieSubmit() {
+function handleFreebieSubmit() {
   const emailVal = freebieEmail ? freebieEmail.value.trim() : "";
-  if (!emailVal || !emailVal.includes("@") || !emailVal.includes(".")) {
-    showToast("กรุณากรอกอีเมลที่ถูกต้องเพื่อรับชุดใบงานฟรี", "info");
+  if (!emailVal || !emailVal.includes("@")) {
+    showToast("กรุณากรอกอีเมลที่ถูกต้องเพื่อรับไฟล์ของขวัญ", "info");
     return;
   }
 
-  const origBtnContent = freebieSubmitBtn ? freebieSubmitBtn.innerHTML : "";
-  if (freebieSubmitBtn) {
-    freebieSubmitBtn.disabled = true;
-    freebieSubmitBtn.innerHTML = `<span>กำลังบันทึกคำขอ...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
-  }
-
-  try {
-    const res = await window.wadfanData.createFreebieRequest(emailVal);
-    if (res.success) {
-      showToast(`🎉 บันทึกคำขอเรียบร้อยแล้ว! แอดมินจะจัดส่งลิงก์ดาวน์โหลดชุดใบงานฟรีไปยังอีเมล ${emailVal} ให้เร็วที่สุดค่ะ`, "success");
-      if (freebieEmail) freebieEmail.value = "";
-    } else {
-      showToast(res.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง", "error");
-    }
-  } catch (err) {
-    console.error("Freebie submit error:", err);
-    showToast("เกิดข้อผิดพลาดในการส่งคำขอ กรุณาลองใหม่อีกครั้ง", "error");
-  } finally {
-    if (freebieSubmitBtn) {
-      freebieSubmitBtn.disabled = false;
-      freebieSubmitBtn.innerHTML = origBtnContent;
-    }
-  }
+  showToast(`✨ ส่งลิงก์ดาวน์โหลดของขวัญดิจิทัลฟรีไปยัง ${emailVal} แล้ว!`, "success");
+  if (freebieEmail) freebieEmail.value = "";
 }
 
 // ==============================================================================
 // 7. Event Listeners & Accordion
 // ==============================================================================
 function setupEventListeners() {
+  // Main Type Tabs Click
   document.querySelectorAll(".main-type-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       window.filterByMainType(tab.dataset.maintype);
     });
   });
 
+  // Filter Tabs Subcategory Click
   if (filterTabs) {
     filterTabs.addEventListener("click", (e) => {
       const btn = e.target.closest(".filter-btn");
       if (!btn) return;
+
       document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+
       currentCategoryFilter = btn.dataset.filter;
       renderProducts();
     });
   }
 
+  // Search input
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       currentSearch = e.target.value;
@@ -1071,10 +702,12 @@ function setupEventListeners() {
     });
   }
 
+  // Cart drawer triggers
   if (cartBtn) cartBtn.addEventListener("click", openCartDrawer);
   if (cartCloseBtn) cartCloseBtn.addEventListener("click", closeCartDrawer);
   if (cartBackdrop) cartBackdrop.addEventListener("click", closeCartDrawer);
 
+  // Preview modal triggers
   if (modalCloseBtn) modalCloseBtn.addEventListener("click", closePreviewModal);
   if (previewModal) {
     previewModal.addEventListener("click", (e) => {
@@ -1082,38 +715,11 @@ function setupEventListeners() {
     });
   }
 
+  // Checkout modal
   if (checkoutBtn) checkoutBtn.addEventListener("click", openCheckoutModal);
   if (checkoutCloseBtn) checkoutCloseBtn.addEventListener("click", closeCheckoutModal);
 
-  // Search Toggle in Navbar
-  const searchToggleBtn = document.getElementById("searchToggleBtn");
-  if (searchToggleBtn) {
-    searchToggleBtn.addEventListener("click", () => {
-      const prodSection = document.getElementById("products");
-      if (prodSection) {
-        prodSection.scrollIntoView({ behavior: "smooth" });
-      }
-      setTimeout(() => {
-        if (searchInput) {
-          searchInput.focus();
-          searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 400);
-    });
-  }
-
-  // Hero Tag Pill Click Handler
-  const heroTagLink = document.getElementById("heroTagLink");
-  if (heroTagLink) {
-    heroTagLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      const prodSection = document.getElementById("products");
-      if (prodSection) {
-        prodSection.scrollIntoView({ behavior: "smooth" });
-      }
-    });
-  }
-
+  // Freebie form submit
   if (freebieSubmitBtn) {
     freebieSubmitBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -1121,6 +727,7 @@ function setupEventListeners() {
     });
   }
 
+  // Mobile navigation
   if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener("click", () => {
       mobileDrawer.classList.add("open");
@@ -1136,97 +743,6 @@ function setupEventListeners() {
   if (drawerCloseBtn) drawerCloseBtn.addEventListener("click", closeMobileNav);
   if (drawerBackdrop) drawerBackdrop.addEventListener("click", closeMobileNav);
   drawerLinks.forEach((l) => l.addEventListener("click", closeMobileNav));
-
-  // Desktop & Mobile Navbar Active Tab Switcher & Scrollspy
-  const allNavClickableLinks = document.querySelectorAll(".nav-link, .drawer-link");
-  allNavClickableLinks.forEach((link) => {
-    link.addEventListener("click", function (e) {
-      // ล็อค scrollspy ไม่ให้เขียนทับค่า active เป็นเวลา 1.2 วินาที ขณะที่หน้าจอกำลัง Smooth Scroll
-      isManualNavClick = true;
-      if (manualNavTimer) clearTimeout(manualNavTimer);
-      manualNavTimer = setTimeout(() => {
-        isManualNavClick = false;
-      }, 1200);
-
-      // ลบสถานะ active เดิมทั้งหมด
-      document.querySelectorAll(".nav-link").forEach((l) => l.classList.remove("active"));
-      document.querySelectorAll(".drawer-link").forEach((l) => l.classList.remove("active"));
-      this.classList.add("active");
-
-      // ซิงค์แท็บที่มี href หรือ onclick เดียวกันระหว่าง Desktop และ Mobile Drawer
-      const href = this.getAttribute("href");
-      const onclickAttr = this.getAttribute("onclick") || "";
-      document.querySelectorAll(".nav-link, .drawer-link").forEach((other) => {
-        if (other === this) return;
-        const otherHref = other.getAttribute("href");
-        const otherOnclick = other.getAttribute("onclick") || "";
-        if (onclickAttr && otherOnclick === onclickAttr) {
-          other.classList.add("active");
-        } else if (!onclickAttr && otherHref === href) {
-          other.classList.add("active");
-        }
-      });
-    });
-  });
-
-  // Accurate Viewport Scrollspy (คำนวณตามตำแหน่งจริงบนจอ)
-  window.addEventListener(
-    "scroll",
-    () => {
-      // หากผู้ใช้เพิ่งคลิกเลือกแท็บจากเมนู ห้าม scrollspy มาเขียนทับเด็ดขาด
-      if (isManualNavClick) return;
-
-      const scrollY = window.scrollY;
-
-      // หากอยู่ที่บนสุดของหน้า (ภายใน 180px) ให้คงสถานะหน้าแรก
-      if (scrollY < 180) {
-        document.querySelectorAll(".nav-link").forEach((link) => {
-          link.classList.toggle("active", link.getAttribute("href") === "#hero");
-        });
-        return;
-      }
-
-      const sections = [
-        { id: "faq", href: "#faq" },
-        { id: "features", href: "#features" },
-        { id: "products", href: "#products" },
-        { id: "categories", href: "#categories" },
-        { id: "hero", href: "#hero" }
-      ];
-
-      for (const item of sections) {
-        const sec = document.getElementById(item.id);
-        if (!sec) continue;
-        const rect = sec.getBoundingClientRect();
-
-        // ตรวจสอบว่า Section นี้อยู่ในช่วงมุมมองของสายตา
-        if (rect.top <= 250 && rect.bottom >= 150) {
-          document.querySelectorAll(".nav-link").forEach((link) => {
-            const href = link.getAttribute("href") || "";
-            const onclickAttr = link.getAttribute("onclick") || "";
-
-            if (item.id === "products") {
-              if (currentMainType === "image" && onclickAttr.includes("'image'")) {
-                link.classList.add("active");
-              } else if (currentMainType === "worksheet" && onclickAttr.includes("'worksheet'")) {
-                link.classList.add("active");
-              } else if (currentMainType === "all" && href === "#products" && onclickAttr.includes("'image'")) {
-                link.classList.add("active");
-              } else {
-                link.classList.remove("active");
-              }
-            } else if (href === item.href && !onclickAttr) {
-              link.classList.add("active");
-            } else {
-              link.classList.remove("active");
-            }
-          });
-          break;
-        }
-      }
-    },
-    { passive: true }
-  );
 }
 
 function setupAccordion() {
@@ -1238,7 +754,9 @@ function setupAccordion() {
     header.addEventListener("click", () => {
       const isOpen = item.classList.contains("active");
       accordionItems.forEach((other) => other.classList.remove("active"));
-      if (!isOpen) item.classList.add("active");
+      if (!isOpen) {
+        item.classList.add("active");
+      }
     });
   });
 }

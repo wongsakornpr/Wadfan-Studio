@@ -57,6 +57,7 @@
         <li><a href="#products" onclick="window.filterByMainType('worksheet')" class="nav-link">📄 ใบงานการเรียนรู้</a></li>
         <li><a href="#categories" class="nav-link">หมวดหมู่สินค้า</a></li>
         <li><a href="#features" class="nav-link">จุดเด่นของเรา</a></li>
+        <li><a href="#reviews" class="nav-link">รีวิวจากลูกค้า</a></li>
         <li><a href="#faq" class="nav-link">คำถามที่พบบ่อย</a></li>
       </ul>
 
@@ -97,6 +98,7 @@
       <li><a href="#products" onclick="window.filterByMainType('worksheet')" class="drawer-link"><i class="fa-solid fa-file-lines"></i> ใบงานการเรียนรู้ (Worksheets)</a></li>
       <li><a href="#categories" class="drawer-link"><i class="fa-solid fa-shapes"></i> หมวดหมู่สินค้า</a></li>
       <li><a href="#features" class="drawer-link"><i class="fa-solid fa-heart"></i> จุดเด่นของเรา</a></li>
+      <li><a href="#reviews" class="drawer-link"><i class="fa-solid fa-star"></i> รีวิวจากลูกค้า</a></li>
       <li><a href="#faq" class="drawer-link"><i class="fa-solid fa-circle-question"></i> คำถามที่พบบ่อย</a></li>
     </ul>
     <div class="drawer-footer">
@@ -129,27 +131,7 @@
             <span id="heroButtonWorksheet">เลือกซื้อใบงานการเรียนรู้</span>
           </button>
         </div>
-
-        <!-- Trust Stats -->
-        <div class="hero-stats">
-          <div class="stat-item">
-            <span class="stat-number" id="heroStat1Value">850+</span>
-            <span class="stat-text" id="heroStat1Label">ผลงานพร้อมใช้</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-number" id="heroStat2Value">15,000+</span>
-            <span class="stat-text" id="heroStat2Label">ดาวน์โหลดสำเร็จ</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-number" id="heroStat3Value">4.9/5</span>
-            <span class="stat-text">
-              <i class="fa-solid fa-star text-yellow"></i> <span id="heroStat3Label">ความพึงพอใจ</span>
-            </span>
-          </div>
-        </div>
-      </div>
+</div>
 
       <!-- Right Hero Visual -->
       <div class="hero-visual">
@@ -345,6 +327,73 @@
           <h3>ดาวน์โหลดได้ทันที 24 ชม.</h3>
           <p>ระบบจัดส่งไฟล์อัตโนมัติ รวดเร็ว พร้อมเก็บบันทึกไฟล์ให้ดาวน์โหลดซ้ำได้ตลอดชีพ</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- Customer Reviews & Real Store Statistics -->
+  <section class="section-padding reviews-section" id="reviews">
+    <div class="container">
+      <div class="section-header text-center">
+        <span class="section-subtitle">เสียงจากลูกค้าจริง</span>
+        <h2 class="section-title">รีวิวจากผู้ใช้งาน Wadfan Studio</h2>
+        <p class="section-desc">ความคิดเห็นจากลูกค้าที่ได้รับการตรวจสอบและอนุมัติแล้ว</p>
+      </div>
+
+      <div class="review-trust-stats" aria-label="สถิติจากข้อมูลจริงของร้าน">
+        <div class="review-trust-stat">
+          <span class="review-trust-value" id="realProductCount">—</span>
+          <span class="review-trust-label">สินค้าพร้อมเลือกซื้อ</span>
+        </div>
+        <div class="review-trust-divider"></div>
+        <div class="review-trust-stat">
+          <span class="review-trust-value" id="realReviewCount">—</span>
+          <span class="review-trust-label">รีวิวจากลูกค้าจริง</span>
+        </div>
+        <div class="review-trust-divider"></div>
+        <div class="review-trust-stat">
+          <span class="review-trust-value" id="realAverageRating">—</span>
+          <span class="review-trust-label"><i class="fa-solid fa-star text-yellow"></i> คะแนนเฉลี่ย</span>
+        </div>
+      </div>
+
+      <div class="reviews-grid" id="customerReviewsGrid" aria-live="polite">
+        <div class="reviews-empty-state">กำลังโหลดรีวิวจากลูกค้า...</div>
+      </div>
+
+      <div class="review-form-card">
+        <div class="review-form-heading">
+          <span class="section-subtitle">แบ่งปันประสบการณ์</span>
+          <h3>คุณเคยใช้สินค้าของเราแล้วหรือยัง?</h3>
+          <p>ส่งความคิดเห็นให้เราได้เลย รีวิวจะแสดงบนเว็บไซต์หลังจากทีมงานตรวจสอบและอนุมัติ</p>
+        </div>
+        <form id="customerReviewForm" class="customer-review-form">
+          <div class="review-form-row">
+            <label for="reviewCustomerName">ชื่อที่ต้องการแสดง</label>
+            <input id="reviewCustomerName" name="customer_name" type="text" maxlength="80"
+              placeholder="เช่น คุณแม่เอ" autocomplete="name" required>
+          </div>
+          <div class="review-form-row">
+            <label for="reviewRating">ให้คะแนนความพึงพอใจ</label>
+            <select id="reviewRating" name="rating" required>
+              <option value="5" selected>★★★★★ — ดีมาก</option>
+              <option value="4">★★★★☆ — ดี</option>
+              <option value="3">★★★☆☆ — ปานกลาง</option>
+              <option value="2">★★☆☆☆ — ควรปรับปรุง</option>
+              <option value="1">★☆☆☆☆ — ไม่พอใจ</option>
+            </select>
+          </div>
+          <div class="review-form-row">
+            <label for="reviewText">ความคิดเห็นของคุณ</label>
+            <textarea id="reviewText" name="review_text" rows="4" maxlength="1000"
+              placeholder="เล่าประสบการณ์หลังจากใช้สินค้าของเรา..." required></textarea>
+          </div>
+          <button class="btn-primary review-submit-btn" id="submitCustomerReviewBtn" type="submit">
+            <i class="fa-regular fa-paper-plane"></i> ส่งรีวิว
+          </button>
+          <p class="review-form-message" id="reviewFormMessage" role="status" aria-live="polite"></p>
+        </form>
       </div>
     </div>
   </section>
