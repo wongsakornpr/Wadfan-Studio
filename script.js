@@ -873,10 +873,10 @@ window.handleOrderSubmit = async function () {
           <div style="background: #FAF9F8; border: 1px solid #E2E8F0; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: left; font-size: 0.9rem; line-height: 1.6;">
             <p><strong><i class="fa-solid fa-envelope-circle-check text-pink"></i> การจัดส่งไฟล์และสินค้า:</strong></p>
             ${
-              hasWorksheets
-                ? `<p>📄 <strong>ใบงานออนไลน์:</strong> ทันทีที่แอดมินกดยืนยันยอดชำระเงิน ระบบจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> อัตโนมัติทันที</p>`
-                : ""
-            }
+  hasWorksheets
+    ? `<p>📄 <strong>ใบงานออนไลน์:</strong> หลังจากแอดมินตรวจสอบและยืนยันการชำระเงินแล้ว แอดมินจะส่งลิงก์ดาวน์โหลดไฟล์ Google Drive ไปยังอีเมล <strong>${email}</strong> ของคุณครับ</p>`
+    : ""
+}
             ${
               hasImages
                 ? `<p>🎨 <strong>รูปภาพ/งานสั่งทำ:</strong> ทีมงานได้รับไฟล์รูปของคุณ (${uploadedFiles.length} รูป) เรียบร้อยแล้ว และจะแจ้งเลขพัสดุ (Tracking) ทางอีเมลเมื่อทำการจัดส่งครับ</p>`
